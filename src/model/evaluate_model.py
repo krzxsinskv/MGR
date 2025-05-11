@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 project_dir = Path(__file__).resolve().parents[2]
 sys.path.insert(1, os.path.join(sys.path[0], project_dir))
 from src.data import make_dataset
-from src.models.models_architectures import MODEL_ARCHITECTURES
+from src.model.models_architectures import MODEL_ARCHITECTURES
 
 
 logger = logging.getLogger(__name__)

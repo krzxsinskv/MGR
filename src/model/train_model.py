@@ -15,9 +15,9 @@ import logging
 
 project_dir = Path(__file__).resolve().parents[2]
 sys.path.insert(1, os.path.join(sys.path[0], project_dir))
-from src.models.models_architectures import MODEL_ARCHITECTURES
+from src.model.models_architectures import MODEL_ARCHITECTURES
 from src.data import make_dataset
-from src.models.utils import get_timestamp, setup_logger, plot_losses
+from src.model.utils import get_timestamp, setup_logger, plot_losses
 
 
 def train_stm_model(X_train, y_train, X_val, y_val, model, lr=0.0001, batch_size=16, max_epochs=20, patience=2):

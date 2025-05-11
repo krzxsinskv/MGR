@@ -3,17 +3,26 @@ import logging
 import torch
 import os
 from datetime import datetime
+import pandas as pd
 
 
 def setup_logger():
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.INFO)
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%H:%M:%S')
-    ch.setFormatter(formatter)
-    logger.addHandler(ch)
-    logger.info("Logger setup was successful")
+    # Sprawdzamy, czy logger jest już ustawiony
+    if not logging.getLogger().hasHandlers():
+        logger = logging.getLogger()
+        logger.setLevel(logging.INFO)
+
+        # Tworzymy handler i ustawiamy format
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%H:%M:%S')
+        handler.setFormatter(formatter)
+
+        # Dodajemy handler do loggera
+        logger.addHandler(handler)
+        logger.info("Logger setup was successful.")
+    else:
+        logger = logging.getLogger()
+
     return logger
 
 
@@ -41,11 +50,12 @@ def plot_losses(model, model_path, train_losses, val_losses, logger, timestamp, 
         plt.show()
 
 
-def test(timestamp):
-    save_dir = os.path.join("results", "losses")
-    os.makedirs(save_dir, exist_ok=True)
-    losses_path = f"results/losses/{timestamp}_losses.png"
-    return save_dir, losses_path
+def inspect_h5_contents(h5_path):
+    logger = setup_logger()
+    with pd.HDFStore(h5_path, mode='r') as store:
+        logger.info(f"Contents of '{h5_path}':")
+        for key in store.keys():
+            logger.info(f"  {key}")
 
 
 if __name__ == '__main__':
