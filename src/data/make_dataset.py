@@ -1,5 +1,5 @@
-from nilmtk.dataset_converters import convert_refit, convert_ukdale
-from nilmtk import DataSet
+# from nilmtk.dataset_converters import convert_refit, convert_ukdale
+# from nilmtk import DataSet
 from nilmtk.utils import dict_to_html, print_dict
 import torch
 import torch.nn as nn
@@ -37,25 +37,25 @@ from src.model.utils import inspect_h5_contents, setup_logger
 # logger.addHandler(ch)
 
 
-def refit_csv_to_h5_nilmtk():
-    logger = setup_logger()
-    dataset_path = "datasets/h5/refit.h5"
-
-    if os.path.exists(dataset_path):
-        logger.info(f"File {dataset_path} found.")
-    else:
-        logger.info(f"File {dataset_path} not found. Starting data conversion.")
-
-        input_path = "datasets/refit"
-        if not os.path.exists(input_path):
-            logger.error(f"Invalid input path: {input_path}. Cannot perform conversion.")
-            return
-
-        convert_refit(input_path, dataset_path)
-
-    data = DataSet(dataset_path)
-    logger.info(f"Dataset loaded from {dataset_path}.")
-    return data
+# def refit_csv_to_h5_nilmtk():
+#     logger = setup_logger()
+#     dataset_path = "datasets/h5/refit.h5"
+#
+#     if os.path.exists(dataset_path):
+#         logger.info(f"File {dataset_path} found.")
+#     else:
+#         logger.info(f"File {dataset_path} not found. Starting data conversion.")
+#
+#         input_path = "datasets/refit"
+#         if not os.path.exists(input_path):
+#             logger.error(f"Invalid input path: {input_path}. Cannot perform conversion.")
+#             return
+#
+#         convert_refit(input_path, dataset_path)
+#
+#     data = DataSet(dataset_path)
+#     logger.info(f"Dataset loaded from {dataset_path}.")
+#     return data
 
 
 def refit_csv_to_h5(csv_folder, output_h5_path, appliance_map_path):
