@@ -7,22 +7,37 @@ import pandas as pd
 
 
 def setup_logger():
-    # Sprawdzamy, czy logger jest już ustawiony
-    if not logging.getLogger().hasHandlers():
-        logger = logging.getLogger()
-        logger.setLevel(logging.INFO)
+    """
+    Sets up the root logger to output messages to the console with a specific format.
 
-        # Tworzymy handler i ustawiamy format
-        handler = logging.StreamHandler()
-        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%H:%M:%S')
-        handler.setFormatter(formatter)
+    Behavior:
+    - Ensures logger is configured only once (even if called multiple times).
+    - Clears any existing handlers on first setup (useful in environments like Google Colab).
+    - Adds a StreamHandler with a custom formatter.
+    - Sets the logging level to INFO.
+    - Logs "Logger setup was successful." only on the first call.
 
-        # Dodajemy handler do loggera
-        logger.addHandler(handler)
-        logger.info("Logger setup was successful.")
-    else:
-        logger = logging.getLogger()
+    Returns:
+        logging.Logger: Configured root logger instance
+    """
+    logger = logging.getLogger()
 
+    if getattr(logger, "_initialized", False):
+        return logger
+
+    logger.setLevel(logging.INFO)
+
+    if logger.hasHandlers():
+        logger.handlers.clear()
+
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%H:%M:%S')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    logger.info("Logger setup was successful.")
+
+    logger._initialized = True
     return logger
 
 
