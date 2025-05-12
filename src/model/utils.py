@@ -46,7 +46,8 @@ def get_timestamp():
     return timestamp
 
 
-def plot_losses(model, model_path, train_losses, val_losses, logger, timestamp, save=True):
+def plot_losses(model, model_path, train_losses, val_losses, timestamp, save=True):
+    logger = setup_logger()
     logger.info('Plotting train and validation losses')
     model.load_state_dict(torch.load(model_path))
     plt.plot(train_losses, label="Train Loss")

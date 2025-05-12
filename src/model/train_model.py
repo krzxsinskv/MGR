@@ -62,7 +62,7 @@ def train_stm_model(X_train, y_train, X_val, y_val, model, lr=0.0001, batch_size
         model.train()
         epoch_loss = 0.0
 
-        for xb, yb in tqdm(train_loader, desc=f"Training Epoch {epoch+1}", leave=False):
+        for xb, yb in tqdm(train_loader, desc=f"Training Epoch {epoch+1}", leave=True):
             optimizer.zero_grad()
             preds = model(xb)
             loss = loss_fn(preds, yb)
@@ -102,14 +102,14 @@ def train_stm_model(X_train, y_train, X_val, y_val, model, lr=0.0001, batch_size
                 logger.info(f"Early stopping triggered at epoch {epoch+1}.")
                 break
     logger.info(f'Ended training.')
-    return model, model_path, train_losses, val_losses, timestamp, logger
+    return model, model_path, train_losses, val_losses, timestamp
 
 
 if __name__ == '__main__':
     X_train, y_train, X_test, y_test = main_make_dataset()
     model = MODEL_ARCHITECTURES['STMModel']()
-    trained_model, model_path, train_losses, val_losses, timestamp, logger = train_stm_model(X_train, y_train, X_test, y_test, model)
-    plot_losses(trained_model, model_path, train_losses, val_losses, logger, timestamp, save=True)
+    trained_model, model_path, train_losses, val_losses, timestamp = train_stm_model(X_train, y_train, X_test, y_test, model)
+    plot_losses(trained_model, model_path, train_losses, val_losses, timestamp, save=True)
 
 
 
