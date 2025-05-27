@@ -36,7 +36,7 @@ class STMModel(nn.Module):
         # --- CBAM after concatenation ---
         self.cbam = CBAM(in_channels=30 + 30 + 128)  # 30 (small) + 30 (large) + 128 (BiGRU last layer)
 
-        # --- Output Module (zgodny z Fig. 5) ---
+        # --- Output Module ---
         self.fc1 = nn.Linear((30 + 30 + 128) * seq_len, 1024)  # 188 * seq_len
         self.relu = nn.ReLU()
 
@@ -64,7 +64,7 @@ class STMModel(nn.Module):
         # Attention mechanism
         Ft = self.cbam(features)  # (B, 188, T)
 
-        # Output module (zgodnie z Fig. 5)
+        # Output module
         flat = torch.flatten(Ft, start_dim=1)  # (B, 188 * T)
         fc = self.relu(self.fc1(flat))  # (B, 1024)
 

@@ -11,20 +11,13 @@ import matplotlib.pyplot as plt
 
 project_dir = Path(__file__).resolve().parents[2]
 sys.path.insert(1, os.path.join(sys.path[0], project_dir))
-from src.data import make_dataset
+from src.data.make_dataset import *
 from src.model.models_architectures import MODEL_ARCHITECTURES
-
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-ch = logging.StreamHandler()
-ch.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%H:%M:%S')
-ch.setFormatter(formatter)
-logger.addHandler(ch)
+from src.model.utils import setup_logger
 
 
 def evaluate_model(model, X_test, y_test, app_max, batch_size=16):
+    logger = setup_logger()
     logger.info("Starting evaluation...")
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -86,9 +79,9 @@ def evaluate_model(model, X_test, y_test, app_max, batch_size=16):
 
 
 if __name__ == '__main__':
-    X_train, y_train, X_test, y_test, app_max = make_dataset.main()
+    X_train, y_train, X_test, y_test, app_max_test = main_make_dataset()
     model = MODEL_ARCHITECTURES['STMModel']()
-    model_path = 'models/2025-05-08_1610_best_model.pth'
+    model_path = 'models/2025-05-12_17-18_best_model.pth'
     model.load_state_dict(torch.load(model_path))
-    evaluate_model(model, X_test, y_test, app_max, batch_size=16)
+    evaluate_model(model, X_test, y_test, app_max_test, batch_size=16)
 
