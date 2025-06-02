@@ -13,10 +13,10 @@ project_dir = Path(__file__).resolve().parents[2]
 sys.path.insert(1, os.path.join(sys.path[0], project_dir))
 from src.data.make_dataset import *
 from src.model.models_architectures import MODEL_ARCHITECTURES
-from src.model.utils import setup_logger
+from src.model.utils import setup_logger, plot_predictions, extract_timestamp, plot_histogram
 
 
-def evaluate_model(model, X_test, y_test, app_max, batch_size=16):
+def evaluate_model(model, X_test, y_test, app_max_test, batch_size=16, timestamp=None):
     logger = setup_logger()
     logger.info("Starting evaluation...")
 
@@ -49,8 +49,8 @@ def evaluate_model(model, X_test, y_test, app_max, batch_size=16):
     logger.info(f"Shape: {y_true.shape}, Min: {y_true.min()}, Max: {y_true.max()}, Mean: {y_true.mean()}")
 
     # Cofnięcie normalizacji
-    y_pred = y_pred * app_max
-    y_true = y_true * app_max
+    y_pred = y_pred * app_max_test
+    y_true = y_true * app_max_test
 
     # Metryki
     mae = np.mean(np.abs(y_pred - y_true))
@@ -62,26 +62,20 @@ def evaluate_model(model, X_test, y_test, app_max, batch_size=16):
     logger.info(f"RMSE: {rmse:.4f}")
     logger.info(f"SAE:  {sae:.4f}")
 
-    plt.plot(y_true[:500], label='True')
-    plt.plot(y_pred[:500], label='Predicted')
-    plt.legend()
-    plt.show()
     print("Pred min/max", y_pred.min(), y_pred.max())
     print("True min/max", y_true.min(), y_true.max())
-    # print("y_train mean:", y_train.mean(), "std:", y_train.std())
-    # print("y_mean from scaler:", y_mean, "y_std from scaler:", y_std)
-    plt.hist(y_pred, bins=50)
-    plt.title("Histogram of Predicted Appliance Power")
-    plt.xlabel("Power (W)")
-    plt.ylabel("Frequency")
-    plt.show()
+
+    plot_predictions(y_true, y_pred, 500, timestamp, save=True)
+    plot_histogram(y_pred, bins=50, timestamp=timestamp, save=True)
     return mae, rmse, sae
 
 
 if __name__ == '__main__':
-    X_train, y_train, X_test, y_test, app_max_test = main_make_dataset()
+    X_train, y_train, X_val, y_val, X_test, y_test, app_max_test = main_make_dataset()
     model = MODEL_ARCHITECTURES['STMModel']()
-    model_path = 'models/2025-05-12_17-18_best_model.pth'
+    model_path = 'models/2025-05-27_16-21_best_model.pth'
     model.load_state_dict(torch.load(model_path))
-    evaluate_model(model, X_test, y_test, app_max_test, batch_size=16)
+    timestamp = extract_timestamp(model_path)
+    evaluate_model(model, X_test, y_test, app_max_test, batch_size=16, timestamp=timestamp)
+
 

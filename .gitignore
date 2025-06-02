@@ -7,6 +7,8 @@
 
 # Results
 /results/losses/*.png
+/results/histograms/*.png
+/results/predictions/*.png
 
 # Datasets
 /datasets/h5/*.h5

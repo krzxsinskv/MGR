@@ -4,6 +4,7 @@ import torch
 import os
 from datetime import datetime
 import pandas as pd
+import re
 
 
 def setup_logger():
@@ -46,6 +47,15 @@ def get_timestamp():
     return timestamp
 
 
+def extract_timestamp(model_path):
+    filename = os.path.basename(model_path)
+    match = re.search(r'\d{4}-\d{2}-\d{2}_\d{2}-\d{2}', filename)
+    if match:
+        return match.group(0)
+    else:
+        return None
+
+
 def plot_losses(model, model_path, train_losses, val_losses, timestamp, save=True):
     logger = setup_logger()
     logger.info('Plotting train and validation losses')
@@ -66,6 +76,45 @@ def plot_losses(model, model_path, train_losses, val_losses, timestamp, save=Tru
         plt.show()
 
 
+def plot_predictions(y_true, y_pred, samples, timestamp, save=True):
+    logger = setup_logger()
+    logger.info('Plotting true and predicted values')
+    plt.plot(y_true[:samples], label='True')
+    plt.plot(y_pred[:samples], label='Predicted')
+    plt.legend()
+    plt.title("True and predicted values")
+    if save:
+        save_dir = os.path.join("results", "predictions")
+        os.makedirs(save_dir, exist_ok=True)
+        save_path = os.path.join(save_dir, f"{timestamp}_predictions.png")
+
+        plt.savefig(save_path)
+        logger.info(f"Saved predicted values plot to {save_path}")
+        plt.show()
+    else:
+        plt.show()
+
+
+def plot_histogram(y_pred, bins, timestamp, save=True):
+    logger = setup_logger()
+    logger.info('Plotting histogram of predicted values')
+    plt.hist(y_pred, bins)
+    plt.title("Histogram of Predicted Appliance Power")
+    plt.xlabel("Power (W)")
+    plt.ylabel("Frequency")
+    plt.title("Histogram of predicted values")
+    if save:
+        save_dir = os.path.join("results", "histograms")
+        os.makedirs(save_dir, exist_ok=True)
+        save_path = os.path.join(save_dir, f"{timestamp}_histogram.png")
+
+        plt.savefig(save_path)
+        logger.info(f"Saved predicted values plot to {save_path}")
+        plt.show()
+    else:
+        plt.show()
+
+
 def inspect_h5_contents(h5_path):
     logger = setup_logger()
     with pd.HDFStore(h5_path, mode='r') as store:
@@ -75,4 +124,6 @@ def inspect_h5_contents(h5_path):
 
 
 if __name__ == '__main__':
-    print('XD')
+    model_path = 'models/2025-05-27_16-21_best_model.pth'
+    timestamp = extract_timestamp(model_path)
+    print(timestamp)

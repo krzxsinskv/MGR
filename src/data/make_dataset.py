@@ -379,13 +379,13 @@ def main_make_dataset():
         window_size=100,
         window_step=1)
 
-    X_train, X_val, y_train, y_val = train_test_split(
-        X_train_full,
-        y_train_full,
-        test_size=0.1,
-        random_state=42,
-        shuffle=True
-    )
+    # X_train, X_val, y_train, y_val = train_test_split(
+    #     X_train_full,
+    #     y_train_full,
+    #     test_size=0.1,
+    #     random_state=42,
+    #     shuffle=True
+    # )
 
     # Test Dataset
     mains_res_test, appl_res_test = load_downsample_data_from_memory(
@@ -409,9 +409,9 @@ def main_make_dataset():
         window_size=100,
         window_step=1)
 
-    return X_train, y_train, X_val, y_val, X_test, y_test
+    return X_train_full, y_train_full, X_test, y_test, app_max_test
 
 
 if __name__ == '__main__':
-    X_train, y_train, X_val, y_val, X_test, y_test = main_make_dataset()
+    X_train, y_train, X_test, y_test, app_max_test = main_make_dataset()
 
