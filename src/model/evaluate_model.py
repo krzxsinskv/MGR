@@ -67,6 +67,7 @@ def evaluate_model(model, X_test, y_test, app_max_test, batch_size=16, timestamp
 
     plot_predictions(y_true, y_pred, 500, timestamp, save=True)
     plot_histogram(y_pred, bins=50, timestamp=timestamp, save=True)
+
     return mae, rmse, sae
 
 

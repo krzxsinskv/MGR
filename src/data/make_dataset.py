@@ -259,15 +259,15 @@ def normalize_with_given_params(df, agg_min, agg_max, app_max):
     return df
 
 
-def pad_aggregate_data(aggregate, window_size):
+def pad_data(data, window_size):
     logger = setup_logger()
-    logger.info(f"Padding aggregate data with window size {window_size}.")
+    logger.info(f"Padding data with window size {window_size}.")
     half_window = window_size // 2
     pad_before = half_window
     pad_after = window_size - half_window - 1
-    aggregate_padded = np.pad(aggregate, (pad_before, pad_after), 'constant')
+    padded = np.pad(data, (pad_before, pad_after), 'constant')
     logger.info(f"Padding completed: {pad_before} before, {pad_after} after.")
-    return aggregate_padded
+    return padded
 
 
 def create_sliding_windows(aggregate_padded, appliance_values, window_size, window_step):
@@ -285,16 +285,15 @@ def create_sliding_windows(aggregate_padded, appliance_values, window_size, wind
 
 def create_sliding_windows_with_normalization(aggregate_padded, appliance_values, window_size, window_step):
     """
-    Creates sliding windows from aggregate power data with per-window normalization and normalizes appliance values.
-
-    Each window is min-max normalized independently. Appliance values are normalized by dividing by the global max.
+    Creates sliding windows from aggregate power data with per-window normalization.
+    Normalizes appliance values per-window by dividing by max value in the window.
 
     Parameters:
     -----------
     aggregate_padded : np.ndarray
-        Padded 1D array of aggregate power readings.
+        1D array of aggregate power readings (not padded anymore).
     appliance_values : np.ndarray
-        1D array of appliance power readings.
+        1D array of appliance power readings (same length as aggregate_padded).
     window_size : int
         Length of each sliding window.
     window_step : int
@@ -303,51 +302,56 @@ def create_sliding_windows_with_normalization(aggregate_padded, appliance_values
     Returns:
     --------
     X : np.ndarray
-        Array of shape (num_windows, window_size) with normalized aggregate windows.
+        Normalized aggregate windows of shape (num_windows, window_size).
     y : np.ndarray
-        Array of shape (num_windows,) with normalized appliance power values.
-    window_min_max : np.ndarray
-        Array of shape (num_windows, 2), each row contains [min, max] of the corresponding aggregate window.
-    max_appliance_value : float
-        Maximum value in `appliance_values`, used for normalization.
+        Normalized middle appliance value per window (shape: (num_windows,)).
+    agg_min_max : np.ndarray
+        Per-window [min, max] of aggregate power (shape: (num_windows, 2)).
+    app_max : np.ndarray
+        Per-window max appliance value used for normalization (shape: (num_windows,)).
     """
     logger = setup_logger()
     logger.info(f"Creating sliding windows with size {window_size} and step {window_step}, with per-window normalization.")
 
     X = []
     y = []
-    window_min_max = []
+    agg_min_max = []
+    app_max = []
 
-    max_appliance_value = np.max(appliance_values)
-    if max_appliance_value == 0:
-        logger.warning("Maximum appliance power is 0. Normalization may result in division by zero.")
-        max_appliance_value = 1e-6
+    half_window = window_size // 2
 
-    for i in range(0, len(appliance_values), window_step):
-        window = aggregate_padded[i:i + window_size]
-        if len(window) != window_size:
-            break
+    for i in range(0, len(aggregate_padded) - window_size + 1, window_step):
+        agg_window = aggregate_padded[i:i + window_size]
+        app_window = appliance_values[i:i + window_size]
 
-        window_min = window.min()
-        window_max = window.max()
-
-        if window_max - window_min != 0:
-            window_norm = (window - window_min) / (window_max - window_min)
+        # Normalize aggregate window
+        agg_min = agg_window.min()
+        agg_max = agg_window.max()
+        if agg_max - agg_min != 0:
+            agg_norm = (agg_window - agg_min) / (agg_max - agg_min)
         else:
-            window_norm = np.zeros_like(window)
+            agg_norm = np.zeros_like(agg_window)
 
-        X.append(window_norm)
-        y_norm = appliance_values[i] / max_appliance_value
-        y.append(y_norm)
-        window_min_max.append([window_min, window_max])
+        # Normalize appliance window using max in this window
+        app_max_val = app_window.max()
+        if app_max_val == 0:
+            app_max_val = 1e-6  # avoid division by zero
+
+        app_window_norm = app_window / app_max_val
+
+        # Save normalized data
+        X.append(agg_norm)
+        y.append(app_window_norm[half_window])  # middle point
+        agg_min_max.append([agg_min, agg_max])
+        app_max.append(app_max_val)
 
     logger.info(f"Created {len(X)} normalized sliding windows.")
 
     return (
         np.array(X),
         np.array(y),
-        np.array(window_min_max),
-        max_appliance_value
+        np.array(agg_min_max),
+        np.array(app_max)
     )
 
 
@@ -369,13 +373,17 @@ def main_make_dataset():
         mains=mains_res_train,
         appliance=appl_res_train)
 
-    df_train_pad = pad_aggregate_data(
-        aggregate=df_train_comb['aggregate'].values,
+    df_train_pad_agg = pad_data(
+        data=df_train_comb['aggregate'].values,
         window_size=100)
 
-    X_train_full, y_train_full, win_min_max_train, app_max_train = create_sliding_windows_with_normalization(
-        aggregate_padded=df_train_pad,
-        appliance_values=df_train_comb['appliance'].values,
+    df_train_pad_app = pad_data(
+        data=df_train_comb['appliance'].values,
+        window_size=100)
+
+    X_train_full, y_train_full, agg_min_max_train, app_max_train = create_sliding_windows_with_normalization(
+        aggregate_padded=df_train_pad_agg,
+        appliance_values=df_train_pad_app,
         window_size=100,
         window_step=1)
 
@@ -400,12 +408,15 @@ def main_make_dataset():
         mains=mains_res_test,
         appliance=appl_res_test)
 
-    df_test_pad = pad_aggregate_data(
-        aggregate=df_test_comb['aggregate'].values, window_size=100)
+    df_test_pad_agg = pad_data(
+        data=df_test_comb['aggregate'].values, window_size=100)
 
-    X_test, y_test, win_min_max_test, app_max_test = create_sliding_windows_with_normalization(
-        aggregate_padded=df_test_pad,
-        appliance_values=df_test_comb['appliance'].values,
+    df_test_pad_app = pad_data(
+        data=df_test_comb['appliance'].values, window_size=100)
+
+    X_test, y_test, agg_min_max_test, app_max_test = create_sliding_windows_with_normalization(
+        aggregate_padded=df_test_pad_agg,
+        appliance_values=df_test_pad_app,
         window_size=100,
         window_step=1)
 
@@ -413,5 +424,6 @@ def main_make_dataset():
 
 
 if __name__ == '__main__':
-    X_train, y_train, X_test, y_test, app_max_test = main_make_dataset()
+    X_train_full, y_train_full, X_test, y_test, app_max_test = main_make_dataset()
+
 

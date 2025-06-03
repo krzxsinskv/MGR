@@ -168,8 +168,8 @@ if __name__ == '__main__':
     df = combine_and_sync(
         mains=mains,
         appliance=appliance)
-    df_agg = pad_aggregate_data(
-        aggregate=df['aggregate'].values,
+    df_agg = pad_data(
+        data=df['aggregate'].values,
         window_size=100)
 
     X, y, agg_min_max, app_max = create_sliding_windows_with_normalization(
