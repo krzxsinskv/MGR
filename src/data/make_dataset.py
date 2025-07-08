@@ -134,6 +134,85 @@ def load_refit_csv_to_memory(csv_folder, appliance_map_path):
     return data_dict
 
 
+def load_refit_csv_file(csv_path, appliance_map_path):
+    logger = setup_logger()
+
+    logger.info(f"Loading appliance mapping from '{appliance_map_path}'")
+    with open(appliance_map_path) as f:
+        appliance_mapping = json.load(f)
+
+    if not os.path.isfile(csv_path):
+        logger.error(f"CSV path does not exist or is not a file: {csv_path}")
+        return {}
+
+    house_name = os.path.splitext(os.path.basename(csv_path))[0]  # e.g., CLEAN_House11
+    house_id = house_name.split("House")[-1]
+
+    logger.info(f"Reading data from: {csv_path} (house {house_id})")
+
+    data_dict = {house_id: {}}  # data_dict[house_id][device_name] = DataFrame
+
+    try:
+        df = pd.read_csv(csv_path, parse_dates=[0], index_col=0)
+        logger.info(f"Loaded {house_name}, shape: {df.shape}")
+
+        for col in df.columns:
+            key = col.strip().lower()
+            device_name = appliance_mapping.get(house_id, {}).get(key, key)
+            data_dict[house_id][device_name] = df[[col]]
+            logger.info(f"Loaded data for house{house_id}/{device_name}")
+    except Exception as e:
+        logger.error(f"Failed to process {csv_path}: {e}")
+
+    logger.info("REFIT CSV successfully loaded into memory.")
+    return data_dict
+
+
+def generate_seq2point_data(data_dict, sequence_length=599, target_appliance='fridge'):
+    """
+    Generates input (X) and output (y) sequences for a one-to-one seq2point NILM model.
+    Assumes data_dict contains exactly one house.
+
+    :param data_dict: Dictionary with filtered data for a single house
+    :param sequence_length: Length of input sequence (default: 599)
+    :param target_appliance: Target appliance name (default: 'fridge')
+    :return: Tuple (X, y), where:
+             - X is numpy array of shape (num_windows, sequence_length, 1)
+             - y is numpy array of shape (num_windows,)
+    """
+    if len(data_dict) != 1:
+        raise ValueError("Expected data_dict to contain exactly one house")
+
+    house_id = next(iter(data_dict))
+
+    if 'aggregate' not in data_dict[house_id]:
+        raise ValueError(f"'aggregate' not found for house {house_id}")
+
+    if target_appliance not in data_dict[house_id]:
+        raise ValueError(f"'{target_appliance}' not found for house {house_id}")
+
+    aggregate_series = data_dict[house_id]['aggregate'].dropna()
+    target_series = data_dict[house_id][target_appliance].dropna()
+
+    aligned = aggregate_series.join(target_series, how='inner', lsuffix='_agg', rsuffix='_target')
+    aggregate_values = aligned.iloc[:, 0].values
+    target_values = aligned.iloc[:, 1].values
+
+    t0 = sequence_length // 2
+    num_samples = len(aligned)
+
+    X = []
+    y = []
+
+    for i in range(t0, num_samples - t0):
+        window = aggregate_values[i - t0:i + t0 + 1]
+        if len(window) == sequence_length:
+            X.append(window.reshape(-1, 1))
+            y.append(target_values[i])
+
+    return np.array(X), np.array(y)
+
+
 def load_downsample_data_nilmtk(dataset, house_id, appliance_name, start_date, end_date):
     logger = setup_logger()
     logger.info(f"Setting data window from {start_date} to {end_date}.")
@@ -157,6 +236,93 @@ def load_downsample_data_nilmtk(dataset, house_id, appliance_name, start_date, e
 
     logger.info("Data loading and resampling completed.")
     return mains_resample, appliance_resample
+
+
+def filter_data_dict_by_time(data_dict, start_time, end_time):
+    """
+    Filters data_dict to include only data within the specified time range,
+    resamples all time series to 8-second intervals, and drops missing values.
+    Assumes data_dict contains exactly one house.
+
+    :param data_dict: Dictionary returned by load_refit_csv_file, containing a single house
+    :param start_time: Start time as a string, e.g., '2014-08-01'
+    :param end_time: End time as a string, e.g., '2014-08-10'
+    :return: Filtered and resampled data_dict with the same structure
+    """
+    from pandas import to_datetime
+
+    if len(data_dict) != 1:
+        raise ValueError("Expected data_dict to contain exactly one house")
+
+    house_id = next(iter(data_dict))
+    start = to_datetime(start_time)
+    end = to_datetime(end_time)
+
+    filtered = {house_id: {}}
+    for appliance, df in data_dict[house_id].items():
+        df = df.copy()
+        df.index = pd.to_datetime(df.index)
+
+        # Filter by time range
+        df = df[(df.index >= start) & (df.index <= end)]
+
+        # df = df.resample("8S").mean().interpolate("linear").fillna(method='bfill').fillna(method='ffill')
+
+        df = df.interpolate("linear").fillna(method="bfill").fillna(method="ffill")
+        # Resample to 8-second intervals
+        # df = df.resample("8S").mean()
+        #
+        # # Drop NaN values caused by resampling or missing data
+        # df = df.dropna()
+
+        filtered[house_id][appliance] = df
+
+    return filtered
+
+
+def generate_seq2point_data(data_dict, sequence_length=599, target_appliance='fridge'):
+    """
+    Generates input (X) and output (y) sequences for a one-to-one seq2point NILM model.
+    Assumes data_dict contains exactly one house.
+
+    :param data_dict: Dictionary with filtered data for a single house
+    :param sequence_length: Length of input sequence (default: 599)
+    :param target_appliance: Target appliance name (default: 'fridge')
+    :return: Tuple (X, y), where:
+             - X is numpy array of shape (num_windows, sequence_length, 1)
+             - y is numpy array of shape (num_windows,)
+    """
+    if len(data_dict) != 1:
+        raise ValueError("Expected data_dict to contain exactly one house")
+
+    house_id = next(iter(data_dict))
+
+    if 'aggregate' not in data_dict[house_id]:
+        raise ValueError(f"'aggregate' not found for house {house_id}")
+
+    if target_appliance not in data_dict[house_id]:
+        raise ValueError(f"'{target_appliance}' not found for house {house_id}")
+
+    aggregate_series = data_dict[house_id]['aggregate'].dropna()
+    target_series = data_dict[house_id][target_appliance].dropna()
+
+    aligned = aggregate_series.join(target_series, how='inner', lsuffix='_agg', rsuffix='_target')
+    aggregate_values = aligned.iloc[:, 0].values
+    target_values = aligned.iloc[:, 1].values
+
+    t0 = sequence_length // 2
+    num_samples = len(aligned)
+
+    X = []
+    y = []
+
+    for i in range(t0, num_samples - t0):
+        window = aggregate_values[i - t0:i + t0 + 1]
+        if len(window) == sequence_length:
+            X.append(window.reshape(-1, 1))
+            y.append(target_values[i])
+
+    return np.array(X), np.array(y)
 
 
 def load_downsample_data(h5_path, house_id, appliance_name, start_date, end_date, resample_rate='30S'):
@@ -355,10 +521,11 @@ def create_sliding_windows_with_normalization(aggregate_padded, appliance_values
     )
 
 
-def main_make_dataset():
+def make_dataset1():
     data_dict = load_refit_csv_to_memory(
-        csv_folder='datasets/test',
+        csv_folder='datasets/refit',
         appliance_map_path='datasets/metadata/refit_metadata.json')
+    
 
     # Train Dataset
     mains_res_train, appl_res_train = load_downsample_data_from_memory(
@@ -423,7 +590,25 @@ def main_make_dataset():
     return X_train_full, y_train_full, X_test, y_test, app_max_test
 
 
+def make_dataset2():
+    data_dict = load_refit_csv_file(
+        csv_path='datasets/refit/CLEAN_House11.csv',
+        appliance_map_path='datasets/metadata/refit_metadata.json')
+    data_filtered = filter_data_dict_by_time(
+        data_dict=data_dict,
+        start_time='2014-07-30',
+        end_time='2014-08-14')
+    X, y = generate_seq2point_data(
+        data_dict=data_filtered,
+        sequence_length=599,
+        target_appliance='fridge'
+    )
+    return X, y
+
 if __name__ == '__main__':
-    X_train_full, y_train_full, X_test, y_test, app_max_test = main_make_dataset()
+    # X_train_full, y_train_full, X_test, y_test, app_max_test = make_dataset()
+
+
+
 
 

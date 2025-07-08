@@ -49,8 +49,8 @@ def evaluate_model(model, X_test, y_test, app_max_test, batch_size=16, timestamp
     logger.info(f"Shape: {y_true.shape}, Min: {y_true.min()}, Max: {y_true.max()}, Mean: {y_true.mean()}")
 
     # Cofnięcie normalizacji
-    y_pred = y_pred * app_max_test
-    y_true = y_true * app_max_test
+    y_pred = y_pred * app_max_test.reshape(-1, 1)
+    y_true = y_true * app_max_test.reshape(-1, 1)
 
     # Metryki
     mae = np.mean(np.abs(y_pred - y_true))
@@ -72,9 +72,9 @@ def evaluate_model(model, X_test, y_test, app_max_test, batch_size=16, timestamp
 
 
 if __name__ == '__main__':
-    X_train, y_train, X_val, y_val, X_test, y_test, app_max_test = main_make_dataset()
+    X_train, y_train, X_test, y_test, app_max_test = make_dataset()
     model = MODEL_ARCHITECTURES['STMModel']()
-    model_path = 'models/2025-05-27_16-21_best_model.pth'
+    model_path = 'models/2025-06-03_17-27_best_model.pth'
     model.load_state_dict(torch.load(model_path))
     timestamp = extract_timestamp(model_path)
     evaluate_model(model, X_test, y_test, app_max_test, batch_size=16, timestamp=timestamp)

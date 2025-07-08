@@ -122,6 +122,47 @@ class CBAM(nn.Module):
         return x
 
 
+class Seq2PointOneToOne(nn.Module):
+    def __init__(self, input_length=599):
+        super(Seq2PointOneToOne, self).__init__()
+
+        # CNN layers — padding manually set to keep "same" output length
+        self.conv1 = nn.Conv1d(in_channels=1, out_channels=30, kernel_size=11, padding=5)
+        self.conv2 = nn.Conv1d(in_channels=30, out_channels=20, kernel_size=9, padding=4)
+        self.conv3 = nn.Conv1d(in_channels=20, out_channels=40, kernel_size=5, padding=2)
+        self.conv4 = nn.Conv1d(in_channels=40, out_channels=5,  kernel_size=5, padding=2)
+
+        # Compute flattened size after convs
+        self.flatten_input_size = self._get_flatten_size(input_length)
+
+        # Dense layers
+        self.fc1 = nn.Linear(self.flatten_input_size, 64)
+        self.output = nn.Linear(64, 1)
+
+    def _get_flatten_size(self, input_length):
+        """Compute flattened size dynamically using dummy input."""
+        dummy = torch.zeros(1, 1, input_length)
+        x = self.conv1(dummy)
+        x = self.conv2(x)
+        x = self.conv3(x)
+        x = self.conv4(x)
+        return x.view(1, -1).shape[1]  # flatten and get size
+
+    def forward(self, x):
+        """
+        Forward pass
+        Input shape: (batch_size, sequence_length, 1)
+        """
+        x = x.permute(0, 2, 1)  # to (batch_size, channels=1, sequence_length)
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = F.relu(self.conv3(x))
+        x = F.relu(self.conv4(x))
+        x = x.view(x.size(0), -1)  # flatten
+        x = F.relu(self.fc1(x))
+        return self.output(x).squeeze()  # shape: (batch_size,)
+
+
 MODEL_ARCHITECTURES = {
     'STMModel': STMModel
 }

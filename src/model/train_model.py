@@ -107,7 +107,7 @@ def train_stm_model(X_train, y_train, X_val, y_val, model, lr=0.0001, batch_size
 
 
 if __name__ == '__main__':
-    X_train, y_train, X_test, y_test, app_max_test = main_make_dataset()
+    X_train, y_train, X_test, y_test, app_max_test = make_dataset()
     model = MODEL_ARCHITECTURES['STMModel']()
     trained_model, model_path, train_losses, val_losses, timestamp = train_stm_model(X_train, y_train, X_test, y_test, model)
     plot_losses(trained_model, model_path, train_losses, val_losses, timestamp, save=True)

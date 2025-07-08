@@ -1,0 +1,32 @@
+{
+  "1": {
+    "1": {
+      "csv_file": "datasets/refit/CLEAN_House9.csv",
+      "house_id": 1,
+      "start_date": "2015-01-01",
+      "end_date": "2015-07-01",
+      "resample_rate": "30S",
+      "appliance_name": "fridge"
+    }
+  },
+  "2": {
+    "1": {
+      "csv_folder": "data/article2/case1/",
+      "house_id": 5,
+      "start_date": "2013-01-01",
+      "end_date": "2013-03-01",
+      "sampling_rate": 1,
+      "appliances": ["microwave", "kettle"]
+    }
+  },
+  "3": {
+    "1": {
+      "csv_folder": "data/article3/case1/",
+      "house_id": 3,
+      "start_date": "2014-05-15",
+      "end_date": "2014-06-15",
+      "sampling_rate": 1,
+      "appliances": ["fridge", "air conditioner"]
+    }
+  }
+}

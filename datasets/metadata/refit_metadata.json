@@ -9,5 +9,27 @@
     "appliance7": "kettle",
     "appliance8": "hi-fi",
     "appliance9": "electric_heater"
+  },
+    "11": {
+    "appliance1": "fridge",
+    "appliance2": "fridge_freezer",
+    "appliance3": "washing_machine",
+    "appliance4": "dishwasher",
+    "appliance5": "computer",
+    "appliance6": "microwave",
+    "appliance7": "kettle",
+    "appliance8": "router",
+    "appliance9": "hi-fi"
+  },
+    "20": {
+    "appliance1": "fridge",
+    "appliance2": "freezer",
+    "appliance3": "tumble_dryer",
+    "appliance4": "washing_machine",
+    "appliance5": "dishwasher",
+    "appliance6": "computer",
+    "appliance7": "television",
+    "appliance8": "microwave",
+    "appliance9": "kettle"
   }
 }
