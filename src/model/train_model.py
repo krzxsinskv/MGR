@@ -21,7 +21,7 @@ from src.data.make_dataset import *
 from src.model.utils import get_timestamp, setup_logger, plot_losses
 
 
-def train_stm_model(X_train, y_train, X_val, y_val, model, lr=0.0001, batch_size=16, max_epochs=20, patience=2):
+def train_model(X_train, y_train, X_val, y_val, model, lr=0.0001, batch_size=16, max_epochs=20, patience=2):
     logger = setup_logger()
     logger.info("Preparing training and validation datasets...")
 
@@ -29,19 +29,25 @@ def train_stm_model(X_train, y_train, X_val, y_val, model, lr=0.0001, batch_size
     logger.info(f"Using device: {device}")
 
     # Convert to tensors and move to device
-    X_train_tensor = torch.tensor(X_train, dtype=torch.float32).unsqueeze(1).to(device)  # shape: (B, 1, T)
-    y_train_tensor = torch.tensor(y_train, dtype=torch.float32).unsqueeze(1).to(device)  # shape: (B, 1)
+    X_train_tensor = torch.tensor(X_train, dtype=torch.float32).unsqueeze(1).to(device)
+    y_train_tensor = torch.tensor(y_train, dtype=torch.float32).unsqueeze(1).to(device)
 
-    X_val_tensor = torch.tensor(X_val, dtype=torch.float32).unsqueeze(1).to(device)  # shape: (B, 1, T)
-    y_val_tensor = torch.tensor(y_val, dtype=torch.float32).unsqueeze(1).to(device)  # shape: (B, 1)
+    X_val_tensor = torch.tensor(X_val, dtype=torch.float32).unsqueeze(1).to(device)
+    y_val_tensor = torch.tensor(y_val, dtype=torch.float32).unsqueeze(1).to(device)
 
     logger.info(f"X_train_tensor: {X_train_tensor.shape}")
     logger.info(f"y_train_tensor: {y_train_tensor.shape}")
     logger.info(f"X_val_tensor: {X_val_tensor.shape}")
     logger.info(f"y_val_tensor: {y_val_tensor.shape}")
 
-    train_loader = DataLoader(TensorDataset(X_train_tensor, y_train_tensor), batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(TensorDataset(X_val_tensor, y_val_tensor), batch_size=batch_size)
+    train_loader = DataLoader(
+        TensorDataset(X_train_tensor, y_train_tensor),
+        batch_size=batch_size, shuffle=True, pin_memory=True
+    )
+    val_loader = DataLoader(
+        TensorDataset(X_val_tensor, y_val_tensor),
+        batch_size=batch_size, pin_memory=True
+    )
 
     model = model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=lr)
@@ -51,7 +57,6 @@ def train_stm_model(X_train, y_train, X_val, y_val, model, lr=0.0001, batch_size
     epochs_no_improve = 0
     train_losses, val_losses = [], []
 
-    # File path to save model
     os.makedirs("models", exist_ok=True)
     timestamp = get_timestamp()
     model_path = f"models/{timestamp}_best_model.pth"
@@ -102,14 +107,26 @@ def train_stm_model(X_train, y_train, X_val, y_val, model, lr=0.0001, batch_size
             if epochs_no_improve >= patience:
                 logger.info(f"Early stopping triggered at epoch {epoch+1}.")
                 break
-    logger.info(f'Ended training.')
+
+    model.load_state_dict(torch.load(model_path))
+    logger.info(f"Training complete. Best model loaded from {model_path}")
+
     return model, model_path, train_losses, val_losses, timestamp
 
 
 if __name__ == '__main__':
-    X_train, y_train, X_test, y_test, app_max_test = make_dataset()
-    model = MODEL_ARCHITECTURES['STMModel']()
-    trained_model, model_path, train_losses, val_losses, timestamp = train_stm_model(X_train, y_train, X_test, y_test, model)
+    X_train, X_val, X_test, y_train, y_val, y_test, norm_params = make_dataset2()
+    model = MODEL_ARCHITECTURES['Seq2PointOneToOne']()
+    trained_model, model_path, train_losses, val_losses, timestamp = train_model(
+        X_train=X_train,
+        y_train=y_train,
+        X_val=X_val,
+        y_val=y_val,
+        model=model,
+        lr=0.01,
+        batch_size=1024,
+        max_epochs=300,
+        patience=10)
     plot_losses(trained_model, model_path, train_losses, val_losses, timestamp, save=True)
 
 

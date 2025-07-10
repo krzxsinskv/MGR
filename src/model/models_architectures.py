@@ -164,5 +164,6 @@ class Seq2PointOneToOne(nn.Module):
 
 
 MODEL_ARCHITECTURES = {
-    'STMModel': STMModel
+    'STMModel': STMModel,
+    'Seq2PointOneToOne': Seq2PointOneToOne
 }

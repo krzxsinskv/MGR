@@ -436,6 +436,88 @@ def pad_data(data, window_size):
     return padded
 
 
+def normalize(X, y):
+    """
+    Min-max normalization for input (X) and output (y).
+    Returns normalized data and the min/max values for later denormalization.
+    """
+    X_min = X.min()
+    X_max = X.max()
+    y_min = y.min()
+    y_max = y.max()
+
+    # Avoid division by zero
+    X_range = X_max - X_min if X_max != X_min else 1.0
+    y_range = y_max - y_min if y_max != y_min else 1.0
+
+    X_norm = (X - X_min) / X_range
+    y_norm = (y - y_min) / y_range
+
+    norm_params = {
+        "X_min": X_min,
+        "X_max": X_max,
+        "y_min": y_min,
+        "y_max": y_max
+    }
+
+    return X_norm, y_norm, norm_params
+
+
+def train_val_test_split(
+        X, y,
+        train_size=0.6,
+        val_size=0.2,
+        test_size=0.2,
+        include_val=True,
+        random_state=42
+):
+    """
+    Splits data into train/val/test or train/test sets based on proportions.
+
+    :param X: Input features (numpy array)
+    :param y: Target values (numpy array)
+    :param train_size: Proportion for training set (e.g., 0.6)
+    :param val_size: Proportion for validation set (e.g., 0.2)
+    :param test_size: Proportion for test set (e.g., 0.2)
+    :param include_val: Whether to include a validation set
+    :param random_state: Random seed for reproducibility
+    :return:
+        If include_val=True:
+            (X_train, X_val, X_test, y_train, y_val, y_test)
+        If include_val=False:
+            (X_train, X_test, y_train, y_test)
+    """
+    if include_val:
+        total = train_size + val_size + test_size
+        if not abs(total - 1.0) < 1e-6:
+            raise ValueError(f"train + val + test must sum to 1.0, but got {total}")
+
+        # Split off training set
+        X_train, X_temp, y_train, y_temp = train_test_split(
+            X, y, test_size=(1 - train_size), random_state=random_state
+        )
+
+        # Relative ratio of val vs test in remaining data
+        val_ratio = val_size / (val_size + test_size)
+
+        X_val, X_test, y_val, y_test = train_test_split(
+            X_temp, y_temp, test_size=(1 - val_ratio), random_state=random_state
+        )
+
+        return X_train, X_val, X_test, y_train, y_val, y_test
+
+    else:
+        total = train_size + test_size
+        if not abs(total - 1.0) < 1e-6:
+            raise ValueError(f"train + test must sum to 1.0, but got {total}")
+
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=test_size, random_state=random_state
+        )
+
+        return X_train, X_test, y_train, y_test
+
+
 def create_sliding_windows(aggregate_padded, appliance_values, window_size, window_step):
     logger = setup_logger()
     logger.info(f"Creating sliding windows with size {window_size} and step {window_step}.")
@@ -447,6 +529,8 @@ def create_sliding_windows(aggregate_padded, appliance_values, window_size, wind
         y.append(appliance_values[i])
     logger.info(f"Created {len(X)} sliding windows.")
     return np.array(X), np.array(y)
+
+
 
 
 def create_sliding_windows_with_normalization(aggregate_padded, appliance_values, window_size, window_step):
@@ -603,10 +687,29 @@ def make_dataset2():
         sequence_length=599,
         target_appliance='fridge'
     )
-    return X, y
+    X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(
+        X, y,
+        train_size=0.6,
+        val_size=0.2,
+        test_size=0.2,
+        include_val=True
+    )
+    X_train_norm, y_train_norm, norm_params = normalize(X_train, y_train)
+
+    X_val_norm = (X_val - norm_params["X_min"]) / (norm_params["X_max"] - norm_params["X_min"])
+    y_val_norm = (y_val - norm_params["y_min"]) / (norm_params["y_max"] - norm_params["y_min"])
+
+    X_test_norm = (X_test - norm_params["X_min"]) / (norm_params["X_max"] - norm_params["X_min"])
+    y_test_norm = (y_test - norm_params["y_min"]) / (norm_params["y_max"] - norm_params["y_min"])
+
+    return X_train_norm, X_val_norm, X_test_norm, y_train_norm, y_val_norm, y_test_norm, norm_params
+
 
 if __name__ == '__main__':
-    # X_train_full, y_train_full, X_test, y_test, app_max_test = make_dataset()
+    X_train_norm, X_val_norm, X_test_norm, y_train_norm, y_val_norm, y_test_norm, norm_params = make_dataset2()
+
+    print(norm_params)
+
 
 
 
