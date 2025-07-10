@@ -28,12 +28,15 @@ def train_model(X_train, y_train, X_val, y_val, model, lr=0.0001, batch_size=16,
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logger.info(f"Using device: {device}")
 
-    # Convert to tensors and move to device
-    X_train_tensor = torch.tensor(X_train, dtype=torch.float32).unsqueeze(1).to(device)
-    y_train_tensor = torch.tensor(y_train, dtype=torch.float32).unsqueeze(1).to(device)
+    # print("X_train shape BEFORE tensor:", X_train.shape)
+    # print("X_val shape BEFORE tensor:", X_val.shape)
 
-    X_val_tensor = torch.tensor(X_val, dtype=torch.float32).unsqueeze(1).to(device)
-    y_val_tensor = torch.tensor(y_val, dtype=torch.float32).unsqueeze(1).to(device)
+    # Convert to CPU tensors
+    X_train_tensor = torch.tensor(X_train, dtype=torch.float32)  # shape: (B, 1, T)
+    y_train_tensor = torch.tensor(y_train, dtype=torch.float32).unsqueeze(1)  # shape: (B, 1)
+
+    X_val_tensor = torch.tensor(X_val, dtype=torch.float32)
+    y_val_tensor = torch.tensor(y_val, dtype=torch.float32).unsqueeze(1)
 
     logger.info(f"X_train_tensor: {X_train_tensor.shape}")
     logger.info(f"y_train_tensor: {y_train_tensor.shape}")
@@ -69,6 +72,9 @@ def train_model(X_train, y_train, X_val, y_val, model, lr=0.0001, batch_size=16,
         epoch_loss = 0.0
 
         for xb, yb in tqdm(train_loader, desc=f"Training Epoch {epoch+1}", leave=True):
+            xb = xb.to(device)
+            yb = yb.to(device)
+
             optimizer.zero_grad()
             preds = model(xb)
             loss = loss_fn(preds, yb)
@@ -87,6 +93,9 @@ def train_model(X_train, y_train, X_val, y_val, model, lr=0.0001, batch_size=16,
 
         with torch.no_grad():
             for xb, yb in tqdm(val_loader, desc=f"Validation Epoch {epoch+1}", leave=False):
+                xb = xb.to(device)
+                yb = yb.to(device)
+
                 preds = model(xb)
                 loss = loss_fn(preds, yb)
                 val_loss += loss.item()

@@ -707,8 +707,8 @@ def make_dataset2():
 
 if __name__ == '__main__':
     X_train_norm, X_val_norm, X_test_norm, y_train_norm, y_val_norm, y_test_norm, norm_params = make_dataset2()
+    print("X_train.shape:", X_train_norm.shape)
 
-    print(norm_params)
 
 
 
