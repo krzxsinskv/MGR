@@ -685,7 +685,7 @@ def make_dataset2():
     X, y = generate_seq2point_data(
         data_dict=data_filtered,
         sequence_length=599,
-        target_appliance='fridge'
+        target_appliance='fridge_freezer'
     )
     X_train, X_val, X_test, y_train, y_val, y_test = train_val_test_split(
         X, y,
@@ -702,12 +702,52 @@ def make_dataset2():
     X_test_norm = (X_test - norm_params["X_min"]) / (norm_params["X_max"] - norm_params["X_min"])
     y_test_norm = (y_test - norm_params["y_min"]) / (norm_params["y_max"] - norm_params["y_min"])
 
-    return X_train_norm, X_val_norm, X_test_norm, y_train_norm, y_val_norm, y_test_norm, norm_params
+    return X_train_norm, X_val_norm, X_test_norm, y_train_norm, y_val_norm, y_test_norm, norm_params, X, y
 
 
 if __name__ == '__main__':
-    X_train_norm, X_val_norm, X_test_norm, y_train_norm, y_val_norm, y_test_norm, norm_params = make_dataset2()
-    print("X_train.shape:", X_train_norm.shape)
+    X_train_norm, X_val_norm, X_test_norm, y_train_norm, y_val_norm, y_test_norm, norm_params, X, y = make_dataset2()
+    # print("Train:", X_train_norm.shape, y_train_norm.shape)
+    # print("Val:", X_val_norm.shape, y_val_norm.shape)
+    # print("Test:", X_test_norm.shape, y_test_norm.shape)
+    plt.hist(y_train_norm, bins=50)
+    plt.title("Histogram y_train_norm")
+    plt.show()
+
+    plt.hist(y_val_norm, bins=50)
+    plt.title("Histogram y_val_norm")
+    plt.show()
+
+    plt.hist(y_test_norm, bins=50)
+    plt.title("Histogram y_val_norm")
+    plt.show()
+
+    plt.hist(y, bins=100)
+    plt.title("Histogram y_train (before normalization)")
+    plt.show()
+
+    czas = np.arange(X.shape[0])
+    plt.figure(figsize=(12, 6))
+    for i in range(min(5, X.shape[1])):  # pokażemy do 5 pierwszych cech
+        plt.plot(czas, X[:, i], label=f'Cech {i}')
+    plt.title("Przebiegi cech X w czasie")
+    plt.xlabel("Czas (próbki)")
+    plt.ylabel("Wartości cech")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+    # 2. Przebieg y (docelowa zmienna)
+    plt.figure(figsize=(12, 4))
+    plt.plot(czas, y, label="y", color='orange')
+    plt.title("Przebieg wartości y w czasie")
+    plt.xlabel("Czas (próbki)")
+    plt.ylabel("y")
+    plt.grid(True)
+    plt.legend()
+    plt.show()
+
+    print(norm_params)
 
 
 
