@@ -1,0 +1,10 @@
+datasets:
+  refit: "/content/drive/MyDrive/MGR/datasets/refit/"
+  metadata: "/content/drive/MyDrive/MGR/datasets/metadata/"
+
+output:
+  models: "/content/drive/MyDrive/MGR/models/"
+  results:
+    histograms: "/content/drive/MyDrive/MGR/results/histograms/"
+    losses: "/content/drive/MyDrive/MGR/results/losses/"
+    predictions: "/content/drive/MyDrive/MGR/results/predictions/"
