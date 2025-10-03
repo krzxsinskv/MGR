@@ -157,7 +157,7 @@ def inspect_sliding_window_with_normalization(X, y, window_min_max, max_applianc
 if __name__ == '__main__':
     data_dict = load_refit_csv_to_memory(
         csv_folder='datasets/test',
-        appliance_map_path='datasets/metadata/refit_metadata.json')
+        appliance_map_path='datasets/metadata/refit_appliance_map.json')
     mains, appliance = load_downsample_data_from_memory(
         data_dict=data_dict,
         house_id=9,

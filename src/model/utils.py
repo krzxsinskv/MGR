@@ -7,53 +7,10 @@ import pandas as pd
 import re
 
 
-def setup_logger():
-    """
-    Sets up the root logger to output messages to the console with a specific format.
-
-    Behavior:
-    - Ensures logger is configured only once (even if called multiple times).
-    - Clears any existing handlers on first setup (useful in environments like Google Colab).
-    - Adds a StreamHandler with a custom formatter.
-    - Sets the logging level to INFO.
-    - Logs "Logger setup was successful." only on the first call.
-
-    Returns:
-        logging.Logger: Configured root logger instance
-    """
-    logger = logging.getLogger()
-
-    if getattr(logger, "_initialized", False):
-        return logger
-
-    logger.setLevel(logging.INFO)
-
-    if logger.hasHandlers():
-        logger.handlers.clear()
-
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%H:%M:%S')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-
-    logger.info("Logger setup was successful.")
-
-    logger._initialized = True
-    return logger
 
 
-def get_timestamp():
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M")
-    return timestamp
 
 
-def extract_timestamp(model_path):
-    filename = os.path.basename(model_path)
-    match = re.search(r'\d{4}-\d{2}-\d{2}_\d{2}-\d{2}', filename)
-    if match:
-        return match.group(0)
-    else:
-        return None
 
 
 def plot_losses(model, model_path, train_losses, val_losses, timestamp, save=True):
@@ -113,14 +70,6 @@ def plot_histogram(y_pred, bins, timestamp, save=True):
         plt.show()
     else:
         plt.show()
-
-
-def inspect_h5_contents(h5_path):
-    logger = setup_logger()
-    with pd.HDFStore(h5_path, mode='r') as store:
-        logger.info(f"Contents of '{h5_path}':")
-        for key in store.keys():
-            logger.info(f"  {key}")
 
 
 if __name__ == '__main__':

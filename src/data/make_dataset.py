@@ -29,143 +29,9 @@ sys.path.insert(1, os.path.join(sys.path[0], project_dir))
 from src.model.utils import inspect_h5_contents, setup_logger
 
 
-# logger = logging.getLogger(__name__)
-# logger.setLevel(logging.INFO)
-# ch = logging.StreamHandler()
-# ch.setLevel(logging.INFO)
-# formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt='%H:%M:%S')
-# ch.setFormatter(formatter)
-# logger.addHandler(ch)
 
 
-# def refit_csv_to_h5_nilmtk():
-#     logger = setup_logger()
-#     dataset_path = "datasets/h5/refit.h5"
-#
-#     if os.path.exists(dataset_path):
-#         logger.info(f"File {dataset_path} found.")
-#     else:
-#         logger.info(f"File {dataset_path} not found. Starting data conversion.")
-#
-#         input_path = "datasets/refit"
-#         if not os.path.exists(input_path):
-#             logger.error(f"Invalid input path: {input_path}. Cannot perform conversion.")
-#             return
-#
-#         convert_refit(input_path, dataset_path)
-#
-#     data = DataSet(dataset_path)
-#     logger.info(f"Dataset loaded from {dataset_path}.")
-#     return data
 
-
-def refit_csv_to_h5(csv_folder, output_h5_path, appliance_map_path):
-    logger = setup_logger()
-    if os.path.exists(output_h5_path):
-        logger.info(f"File '{output_h5_path}' already exists. Skipping conversion.")
-        return
-
-    logger.info(f"Loading appliance mapping from '{appliance_map_path}'")
-    with open(appliance_map_path) as f:
-        appliance_mapping = json.load(f)
-
-    logger.info(f"Starting REFIT CSV to HDF5 conversion from folder: {csv_folder}")
-
-    with pd.HDFStore(output_h5_path, mode='w') as store:
-        for file in os.listdir(csv_folder):
-            if file.endswith(".csv"):
-                house_name = os.path.splitext(file)[0]  # e.g., CLEAN_House1
-                house_id = house_name.split("House")[-1]  # extract number
-                file_path = os.path.join(csv_folder, file)
-
-                logger.info(f"Reading house data: {file_path} (house {house_id})")
-
-                try:
-                    df = pd.read_csv(file_path, parse_dates=[0], index_col=0)
-                    logger.info(f"Loaded {house_name}, shape: {df.shape}")
-
-                    for col in df.columns:
-                        key = col.strip().lower()
-                        device_name = appliance_mapping.get(house_id, {}).get(key, key)
-                        dataset_path = f"house{house_id}/{device_name}"
-                        store.put(dataset_path, df[[col]])
-                        logger.info(f"Saved {dataset_path}")
-                except Exception as e:
-                    logger.error(f"Failed to process {file_path}: {e}")
-
-    logger.info(f"REFIT dataset successfully saved to '{output_h5_path}'")
-
-
-def load_refit_csv_to_memory(csv_folder, appliance_map_path):
-    logger = setup_logger()
-
-    logger.info(f"Loading appliance mapping from '{appliance_map_path}'")
-    with open(appliance_map_path) as f:
-        appliance_mapping = json.load(f)
-
-    logger.info(f"Starting REFIT CSV in-memory loading from folder: {csv_folder}")
-
-    data_dict = {}  # Strukturujemy dane: data_dict[house_id][device_name] = DataFrame
-
-    for file in os.listdir(csv_folder):
-        if file.endswith(".csv"):
-            house_name = os.path.splitext(file)[0]  # e.g., CLEAN_House1
-            house_id = house_name.split("House")[-1]  # extract number
-            file_path = os.path.join(csv_folder, file)
-
-            logger.info(f"Reading house data: {file_path} (house {house_id})")
-
-            try:
-                df = pd.read_csv(file_path, parse_dates=[0], index_col=0)
-                logger.info(f"Loaded {house_name}, shape: {df.shape}")
-
-                if house_id not in data_dict:
-                    data_dict[house_id] = {}
-
-                for col in df.columns:
-                    key = col.strip().lower()
-                    device_name = appliance_mapping.get(house_id, {}).get(key, key)
-                    data_dict[house_id][device_name] = df[[col]]
-                    logger.info(f"Loaded data for house{house_id}/{device_name}")
-            except Exception as e:
-                logger.error(f"Failed to process {file_path}: {e}")
-
-    logger.info("REFIT dataset successfully loaded into memory.")
-    return data_dict
-
-
-def load_refit_csv_file(csv_path, appliance_map_path):
-    logger = setup_logger()
-
-    logger.info(f"Loading appliance mapping from '{appliance_map_path}'")
-    with open(appliance_map_path) as f:
-        appliance_mapping = json.load(f)
-
-    if not os.path.isfile(csv_path):
-        logger.error(f"CSV path does not exist or is not a file: {csv_path}")
-        return {}
-
-    house_name = os.path.splitext(os.path.basename(csv_path))[0]  # e.g., CLEAN_House11
-    house_id = house_name.split("House")[-1]
-
-    logger.info(f"Reading data from: {csv_path} (house {house_id})")
-
-    data_dict = {house_id: {}}  # data_dict[house_id][device_name] = DataFrame
-
-    try:
-        df = pd.read_csv(csv_path, parse_dates=[0], index_col=0)
-        logger.info(f"Loaded {house_name}, shape: {df.shape}")
-
-        for col in df.columns:
-            key = col.strip().lower()
-            device_name = appliance_mapping.get(house_id, {}).get(key, key)
-            data_dict[house_id][device_name] = df[[col]]
-            logger.info(f"Loaded data for house{house_id}/{device_name}")
-    except Exception as e:
-        logger.error(f"Failed to process {csv_path}: {e}")
-
-    logger.info("REFIT CSV successfully loaded into memory.")
-    return data_dict
 
 
 def generate_seq2point_data(data_dict, sequence_length=599, target_appliance='fridge'):
@@ -213,29 +79,7 @@ def generate_seq2point_data(data_dict, sequence_length=599, target_appliance='fr
     return np.array(X), np.array(y)
 
 
-def load_downsample_data_nilmtk(dataset, house_id, appliance_name, start_date, end_date):
-    logger = setup_logger()
-    logger.info(f"Setting data window from {start_date} to {end_date}.")
-    dataset.set_window(start=start_date, end=end_date)
 
-    logger.info(f"Loading data for house {house_id}, appliance '{appliance_name}'.")
-    building = dataset.buildings[house_id]
-    elec = building.elec
-    mains = elec.mains()
-    appliance = elec[appliance_name]
-
-    logger.info(f"Concatenating mains readings.")
-    mains = pd.concat(mains.load(), axis=0)
-    mains.index = pd.to_datetime(mains.index)
-    mains_resample = mains.resample('30S').mean().interpolate(method='time')
-
-    logger.info(f"Concatenating {appliance_name} readings.")
-    appliance = pd.concat(appliance.load(), axis=0)
-    appliance.index = pd.to_datetime(appliance.index)
-    appliance_resample = appliance.resample('30S').mean().interpolate(method='time')
-
-    logger.info("Data loading and resampling completed.")
-    return mains_resample, appliance_resample
 
 
 def filter_data_dict_by_time(data_dict, start_time, end_time):
@@ -324,38 +168,6 @@ def generate_seq2point_data(data_dict, sequence_length=599, target_appliance='fr
 
     return np.array(X), np.array(y)
 
-
-def load_downsample_data(h5_path, house_id, appliance_name, start_date, end_date, resample_rate='30S'):
-    logger = setup_logger()
-    logger.info(f"Loading data for house {house_id}, appliance '{appliance_name}', window: {start_date} to {end_date}")
-
-    with pd.HDFStore(h5_path, mode='r') as store:
-        try:
-            mains_path = f'house{house_id}/aggregate'
-            appliance_path = f'house{house_id}/{appliance_name.lower()}'
-
-            logger.info(f"Reading mains from {mains_path}")
-            mains = store.get(mains_path)
-            logger.info(f"Reading appliance from {appliance_path}")
-            appliance = store.get(appliance_path)
-        except KeyError as e:
-            logger.error(f"Data not found: {e}")
-            return None, None
-
-    # Ensure datetime index
-    mains.index = pd.to_datetime(mains.index)
-    appliance.index = pd.to_datetime(appliance.index)
-
-    # Cut to time window
-    mains = mains[start_date:end_date]
-    appliance = appliance[start_date:end_date]
-
-    logger.info(f"Downsampling mains and appliance data to {resample_rate}")
-    mains_resample = mains.resample(resample_rate).mean().interpolate(method='time')
-    appliance_resample = appliance.resample(resample_rate).mean().interpolate(method='time')
-
-    logger.info("Data loading and resampling completed.")
-    return mains_resample, appliance_resample
 
 
 def load_downsample_data_from_memory(data_dict, house_id, appliance_name, start_date, end_date, resample_rate='30S'):
@@ -608,7 +420,7 @@ def create_sliding_windows_with_normalization(aggregate_padded, appliance_values
 def make_dataset1():
     data_dict = load_refit_csv_to_memory(
         csv_folder='datasets/refit',
-        appliance_map_path='datasets/metadata/refit_metadata.json')
+        appliance_map_path='datasets/metadata/refit_appliance_map.json')
     
 
     # Train Dataset
@@ -677,7 +489,7 @@ def make_dataset1():
 def make_dataset2():
     data_dict = load_refit_csv_file(
         csv_path='datasets/refit/CLEAN_House11.csv',
-        appliance_map_path='datasets/metadata/refit_metadata.json')
+        appliance_map_path='datasets/metadata/refit_appliance_map.json')
     data_filtered = filter_data_dict_by_time(
         data_dict=data_dict,
         start_time='2014-07-30',

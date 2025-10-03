@@ -2,14 +2,21 @@ experiment:
   name: "article1_case1"
   description: "Self-training model (STM) per appliance on House 9 REFIT dataset"
 
+paths:
+  appliance_map: "datasets/metadata/refit_appliance_map.json"
+
 data:
   dataset: "refit"
-  house: 9
+  houses:
+    - 9
   appliances:
     - fridge
   train_range: ["2015-01-01", "2015-07-01"]
   test_range: ["2014-12-01", "2014-12-10"]
   resample_rate: "30S"
+  window_size: 100
+  window_step: 1
+  normalization: true   # whether to normalize aggregate/appliance power
 
 model:
   type: "STMModel"
@@ -18,7 +25,7 @@ model:
     epochs: 20
     batch_size: 16
     learning_rate: 0.0001
-    optimizer: 'Adam'
+    optimizer: "Adam"
     patience: 2
     loss_fn: MSE
 
