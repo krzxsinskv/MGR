@@ -170,50 +170,6 @@ def generate_seq2point_data(data_dict, sequence_length=599, target_appliance='fr
 
 
 
-def load_downsample_data_from_memory(data_dict, house_id, appliance_name, start_date, end_date, resample_rate='30S'):
-    logger = setup_logger()
-    logger.info(
-        f"Loading in-memory data for house {house_id}, appliance '{appliance_name}', window: {start_date} to {end_date}")
-
-    try:
-        house_data = data_dict[str(house_id)]
-        mains = house_data.get('aggregate')
-        appliance = house_data.get(appliance_name.lower())
-
-        if mains is None or appliance is None:
-            raise KeyError(f"Missing data for house {house_id}, 'aggregate' or '{appliance_name}'")
-
-    except KeyError as e:
-        logger.error(f"Data not found in memory: {e}")
-        return None, None
-
-    # Ensure datetime index
-    mains.index = pd.to_datetime(mains.index)
-    appliance.index = pd.to_datetime(appliance.index)
-
-    # Cut to time window
-    mains = mains[start_date:end_date]
-    appliance = appliance[start_date:end_date]
-
-    logger.info(f"Downsampling data to {resample_rate}")
-    mains_resample = mains.resample(resample_rate).mean().interpolate(method='time')
-    appliance_resample = appliance.resample(resample_rate).mean().interpolate(method='time')
-
-    logger.info("In-memory data loading and resampling completed.")
-    return mains_resample, appliance_resample
-
-
-def combine_and_sync(mains, appliance):
-    logger = setup_logger()
-    logger.info("Combining mains and appliance data into a single DataFrame.")
-    df = pd.DataFrame({
-        'aggregate': mains.values.flatten(),
-        'appliance': appliance.values.flatten()
-    }, index=mains.index)
-    logger.info("Data combined successfully.")
-    return df
-
-
 def normalize_data(df):
     logger = setup_logger()
     logger.info("Normalizing data.")

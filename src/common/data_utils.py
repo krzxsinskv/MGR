@@ -166,6 +166,85 @@ def load_refit_csv(appliance_map_path, csv_paths, appliances=None):
     return data_dict
 
 
+def prepare_data(data_dict, house_id, appliance_name, start_date, end_date, resample_rate="30S"):
+    """
+    Prepares in-memory REFIT data for a given house and appliance.
+    Ensures time alignment, trims data to the specified date range,
+    resamples to a uniform frequency, interpolates missing values,
+    and optionally removes any remaining NaN samples.
+
+    :param data_dict: Dictionary returned by `load_refit_csv`, containing data organized by house and appliance
+    :param house_id: ID of the house to process (int or str)
+    :param appliance_name: Name of the appliance (string, lowercase recommended)
+    :param start_date: Start date for slicing (e.g. '2015-01-01')
+    :param end_date: End date for slicing (e.g. '2015-07-01')
+    :param resample_rate: Pandas-compatible resampling rate string (default '30S')
+    :return: Tuple (mains_resampled, appliance_resampled), where each is a pandas.DataFrame
+             indexed by datetime and resampled to the specified frequency
+    """
+    logger = setup_logger()
+    logger.info(f"Preparing data for house {house_id}, appliance '{appliance_name}'")
+
+    try:
+        house_data = data_dict.get(str(house_id))
+        if house_data is None:
+            raise KeyError(f"House {house_id} not found in data_dict")
+
+        mains = house_data.get("aggregate")
+        appliance = house_data.get(appliance_name.lower())
+
+        if mains is None or appliance is None:
+            raise KeyError(f"Missing 'aggregate' or '{appliance_name}' for house {house_id}")
+
+        # Ensure datetime index
+        mains.index = pd.to_datetime(mains.index)
+        appliance.index = pd.to_datetime(appliance.index)
+
+        # Cut to time window
+        mains = mains.loc[start_date:end_date]
+        appliance = appliance.loc[start_date:end_date]
+
+        if mains.empty or appliance.empty:
+            raise ValueError(f"No data in time window {start_date}–{end_date} for house {house_id}")
+
+        # Resample and interpolate
+        logger.info(f"Resampling data to {resample_rate}")
+        mains_resampled = mains.resample(resample_rate).mean().interpolate(method='time').dropna()
+        appliance_resampled = appliance.resample(resample_rate).mean().interpolate(method='time').dropna()
+
+        logger.info("Data preparation completed successfully.")
+        return mains_resampled, appliance_resampled
+
+    except Exception as e:
+        logger.error(f"Failed to prepare data for house {house_id}, appliance '{appliance_name}': {e}")
+        return None, None
+
+
+def combine_and_sync(mains, appliance):
+    """
+    Combines mains and appliance power consumption data into a single, synchronized DataFrame.
+    The resulting DataFrame shares a common datetime index and contains two columns:
+    'aggregate' (for mains) and 'appliance' (for the selected device).
+
+    :param mains: pandas.DataFrame or pandas.Series representing aggregate (mains) power data
+    :param appliance: pandas.DataFrame or pandas.Series representing appliance power data
+    :return: pandas.DataFrame with structure:
+             index (DatetimeIndex)
+             ├── aggregate (float)
+             └── appliance (float)
+    """
+    logger = setup_logger()
+    logger.info("Combining mains and appliance data into a single DataFrame.")
+
+    df = pd.DataFrame({
+        'aggregate': mains.values.flatten(),
+        'appliance': appliance.values.flatten()
+    }, index=mains.index)
+
+    logger.info("Data combined successfully.")
+    return df
+
+
 if __name__ == '__main__':
     config = load_yaml_config(yaml_path="configs/article1_case1.yaml")
 
@@ -178,8 +257,21 @@ if __name__ == '__main__':
         csv_paths=csv_paths,
         appliances=config["data"]["appliances"])
 
+    # Train dataset
+
+    mains_train, appliance_train = prepare_data(
+        data_dict=data,
+        house_id=config["data"]["houses"][0],
+        appliance_name=config["data"]["appliances"][0],
+        start_date=config["data"]["train_range"][0],
+        end_date=config["data"]["train_range"][1],
+        resample_rate=config["data"]["resample_rate"]
+    )
+
+    df = combine_and_sync(mains=mains_train, appliance=appliance_train)
+
     # data_dict = load_refit_csv_file(
     #     csv_path='datasets/refit/CLEAN_House11.csv',
     #     appliance_map_path='datasets/metadata/refit_appliance_map.json')
 
-    print(data)
+    print(df)
