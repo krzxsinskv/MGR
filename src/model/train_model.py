@@ -17,8 +17,8 @@ import logging
 project_dir = Path(__file__).resolve().parents[2]
 sys.path.insert(1, os.path.join(sys.path[0], project_dir))
 from src.model.models_architectures import MODEL_ARCHITECTURES
-from src.data.make_dataset import *
-from src.model.utils import get_timestamp, setup_logger, plot_losses
+from src.common.data_utils import make_dataset
+from src.common.other_utils import get_timestamp, setup_logger, plot_losses
 
 
 def train_model(X_train, y_train, X_val, y_val, model, lr=0.0001, batch_size=16, max_epochs=20, patience=2):
@@ -76,7 +76,7 @@ def train_model(X_train, y_train, X_val, y_val, model, lr=0.0001, batch_size=16,
             yb = yb.to(device)
 
             optimizer.zero_grad()
-            preds = model(xb)
+            preds = model(xb.unsqueeze(1))
             loss = loss_fn(preds, yb)
             loss.backward()
             optimizer.step()
@@ -96,7 +96,7 @@ def train_model(X_train, y_train, X_val, y_val, model, lr=0.0001, batch_size=16,
                 xb = xb.to(device)
                 yb = yb.to(device)
 
-                preds = model(xb)
+                preds = model(xb.unsqueeze(1))
                 loss = loss_fn(preds, yb)
                 val_loss += loss.item()
 
@@ -124,18 +124,18 @@ def train_model(X_train, y_train, X_val, y_val, model, lr=0.0001, batch_size=16,
 
 
 if __name__ == '__main__':
-    X_train, X_val, X_test, y_train, y_val, y_test, norm_params = make_dataset2()
-    model = MODEL_ARCHITECTURES['Seq2PointOneToOne']()
+    X_train, y_train, X_val, y_val, X_test, y_test, norm_params = make_dataset()
+    model = MODEL_ARCHITECTURES['STMModel']()
     trained_model, model_path, train_losses, val_losses, timestamp = train_model(
         X_train=X_train,
         y_train=y_train,
         X_val=X_val,
         y_val=y_val,
         model=model,
-        lr=0.01,
-        batch_size=1024,
-        max_epochs=300,
-        patience=10)
+        lr=0.0001,
+        batch_size=16,
+        max_epochs=20,
+        patience=2)
     plot_losses(trained_model, model_path, train_losses, val_losses, timestamp, save=True)
 
 

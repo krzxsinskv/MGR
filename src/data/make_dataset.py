@@ -26,7 +26,6 @@ from sklearn.model_selection import train_test_split
 
 project_dir = Path(__file__).resolve().parents[2]
 sys.path.insert(1, os.path.join(sys.path[0], project_dir))
-from src.model.utils import inspect_h5_contents, setup_logger
 
 
 

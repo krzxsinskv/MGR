@@ -154,6 +154,81 @@ def inspect_sliding_window_with_normalization(X, y, window_min_max, max_applianc
     print("\nMax Appliance Value used for normalization:", max_appliance_value)
 
 
+def plot_mains_and_appliance(df, n_samples=None):
+    """
+    Plots two time-series graphs showing mains ('aggregate') and appliance power consumption.
+    The x-axis represents timestep indices (each corresponding to a 30-second interval).
+    The function displays up to the specified number of samples; if not provided, all samples
+    from the DataFrame are plotted.
+
+    :param df: pandas.DataFrame containing power data with structure:
+               index (DatetimeIndex)
+               ├── aggregate (float) – mains power
+               └── appliance (float) – appliance power
+    :param n_samples: int, optional
+                      Number of samples to plot. Defaults to all samples in the DataFrame.
+    :return: None
+    """
+
+    if n_samples is None or n_samples > len(df):
+        n_samples = len(df)
+
+    timesteps = range(n_samples)
+    mains = df['aggregate'].iloc[:n_samples]
+    appliance = df['appliance'].iloc[:n_samples]
+
+    fig, axes = plt.subplots(2, 1, figsize=(10, 6), sharex=True)
+
+    # Plot mains (aggregate)
+    axes[0].plot(timesteps, mains, label='Mains (aggregate)', color='tab:blue')
+    axes[0].set_ylabel('Power [W]')
+    axes[0].set_title('Mains (aggregate)')
+    axes[0].grid(True, linestyle='--', alpha=0.5)
+
+    # Plot appliance
+    axes[1].plot(timesteps, appliance, label='Appliance', color='tab:orange')
+    axes[1].set_ylabel('Power [W]')
+    axes[1].set_xlabel('Timestep (30s intervals)')
+    axes[1].set_title('Appliance')
+    axes[1].grid(True, linestyle='--', alpha=0.5)
+
+    plt.tight_layout()
+    plt.show()
+
+
+def find_max_appliance_info(df: pd.DataFrame):
+    """
+    Finds the maximum appliance power value in the given DataFrame and
+    returns the corresponding time index and aggregate value.
+
+    :param df: pandas.DataFrame containing columns:
+               ├── aggregate (float)
+               └── appliance (float)
+               indexed by datetime (Time)
+    :return: dict with keys:
+             {
+                 'time': datetime,
+                 'appliance_max': float,
+                 'aggregate_at_max': float
+             }
+    """
+    if 'appliance' not in df.columns or 'aggregate' not in df.columns:
+        raise ValueError("DataFrame must contain 'aggregate' and 'appliance' columns.")
+
+    # Find index (row) where appliance has maximum value
+    idx_max = df['appliance'].idxmax()
+
+    # Extract values
+    appliance_max = df.loc[idx_max, 'appliance']
+    aggregate_at_max = df.loc[idx_max, 'aggregate']
+
+    return {
+        'time': idx_max,
+        'appliance_max': appliance_max,
+        'aggregate_at_max': aggregate_at_max
+    }
+
+
 if __name__ == '__main__':
     data_dict = load_refit_csv_to_memory(
         csv_folder='datasets/test',

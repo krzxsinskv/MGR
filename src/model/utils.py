@@ -13,24 +13,7 @@ import re
 
 
 
-def plot_losses(model, model_path, train_losses, val_losses, timestamp, save=True):
-    logger = setup_logger()
-    logger.info('Plotting train and validation losses')
-    model.load_state_dict(torch.load(model_path))
-    plt.plot(train_losses, label="Train Loss")
-    plt.plot(val_losses, label="Validation Loss")
-    plt.legend()
-    plt.title("Loss over Epochs")
-    if save:
-        save_dir = os.path.join("results", "losses")
-        os.makedirs(save_dir, exist_ok=True)
-        save_path = os.path.join(save_dir, f"{timestamp}_losses.png")
 
-        plt.savefig(save_path)
-        logger.info(f"Saved loss plot to {save_path}")
-        plt.show()
-    else:
-        plt.show()
 
 
 def plot_predictions(y_true, y_pred, samples, timestamp, save=True):
