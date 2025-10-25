@@ -170,24 +170,46 @@ def load_refit_csv(appliance_map_path, csv_paths, appliances=None):
     return data_dict
 
 
-def prepare_data(data_dict, house_id, appliance_name, start_date, end_date, resample_rate="30S"):
+def prepare_data(
+    data_dict,
+    house_id,
+    appliance_name,
+    start_date,
+    end_date,
+    resample_rate="30S",
+    clear_issues=True
+):
     """
     Prepares in-memory REFIT data for a given house and appliance.
     Ensures time alignment, trims data to the specified date range,
     resamples to a uniform frequency, interpolates missing values,
-    and optionally removes any remaining NaN samples.
+    and optionally clears 'Issues' samples.
 
-    :param data_dict: Dictionary returned by `load_refit_csv`, containing data organized by house and appliance
-    :param house_id: ID of the house to process (int or str)
-    :param appliance_name: Name of the appliance (string, lowercase recommended)
-    :param start_date: Start date for slicing (e.g. '2015-01-01')
-    :param end_date: End date for slicing (e.g. '2015-07-01')
-    :param resample_rate: Pandas-compatible resampling rate string (default '30S')
-    :return: Tuple (mains_resampled, appliance_resampled), where each is a pandas.DataFrame
-             indexed by datetime and resampled to the specified frequency
+    Parameters
+    ----------
+    data_dict : dict
+        Dictionary returned by `load_refit_csv`, containing data organized by house and appliance.
+    house_id : int or str
+        ID of the house to process.
+    appliance_name : str
+        Name of the appliance (lowercase recommended).
+    start_date : str
+        Start date for slicing (e.g. '2015-01-01').
+    end_date : str
+        End date for slicing (e.g. '2015-07-01').
+    resample_rate : str, optional
+        Pandas-compatible resampling rate string (default '30S').
+    clear_issues : bool, optional
+        If True, clears samples where Issues == 1 and appliance > mains.
+        Should be True for training/validation, False for testing.
+
+    Returns
+    -------
+    mains_resampled, appliance_resampled : pd.DataFrame
+        Resampled and aligned dataframes indexed by datetime.
     """
     logger = setup_logger()
-    logger.info(f"Preparing data for house {house_id}, appliance '{appliance_name}'")
+    logger.info(f"Preparing data for house {house_id}, appliance '{appliance_name}' (clear_issues={clear_issues})")
 
     try:
         house_data = data_dict.get(str(house_id))
@@ -208,16 +230,26 @@ def prepare_data(data_dict, house_id, appliance_name, start_date, end_date, resa
         mains = mains.loc[start_date:end_date]
         appliance = appliance.loc[start_date:end_date]
 
-        # Clear issues (Issues == 1 & appliance > main)
-        issues = house_data.get("issues")
-        if issues is not None:
-            issues = issues.loc[start_date:end_date]
-            mask_issue = issues['Issues'] == 1
-            mask_bad = mask_issue & (appliance.iloc[:, 0] > mains.iloc[:, 0])
+        # Optionally clear issues (only for train/val)
+        if clear_issues:
+            issues = house_data.get("issues")
+            if issues is not None:
+                issues = issues.loc[start_date:end_date]
+                mask_issue = issues['Issues'] == 1
+                mask_bad = mask_issue & (appliance.iloc[:, 0] > mains.iloc[:, 0])
 
-            # Appliance == 0
-            appliance = appliance.copy()
-            appliance.loc[mask_bad, appliance.columns[0]] = 0
+                n_cleared = mask_bad.sum()
+                total_samples = len(mask_bad)
+                percent_cleared = (n_cleared / total_samples * 100) if total_samples > 0 else 0.0
+
+                # Appliance == 0 in faulty samples
+                appliance = appliance.copy()
+                appliance.loc[mask_bad, appliance.columns[0]] = 0
+
+                logger.info(
+                    f"Cleared {n_cleared} issue samples "
+                    f"({percent_cleared:.2f}% of total, Issues==1 & appliance>mains)."
+                )
 
         if mains.empty or appliance.empty:
             raise ValueError(f"No data in time window {start_date}–{end_date} for house {house_id}")
@@ -227,7 +259,10 @@ def prepare_data(data_dict, house_id, appliance_name, start_date, end_date, resa
         mains_resampled = mains.resample(resample_rate).mean().interpolate(method='time').dropna()
         appliance_resampled = appliance.resample(resample_rate).mean().interpolate(method='time').dropna()
 
-        logger.info("Data preparation completed successfully.")
+        logger.info(
+            f"Data preparation completed successfully: {len(mains_resampled)} samples "
+            f"({start_date} → {end_date})"
+        )
         return mains_resampled, appliance_resampled
 
     except Exception as e:
@@ -465,7 +500,8 @@ def make_dataset():
         appliance_name=config["data"]["appliances"][0],
         start_date=config["data"]["train_range"][0],
         end_date=config["data"]["train_range"][1],
-        resample_rate=config["data"]["resample_rate"]
+        resample_rate=config["data"]["resample_rate"],
+        clear_issues=True
     )
     mains_test, appliance_test = prepare_data(
         data_dict=data,
@@ -473,7 +509,8 @@ def make_dataset():
         appliance_name=config["data"]["appliances"][0],
         start_date=config["data"]["test_range"][0],
         end_date=config["data"]["test_range"][1],
-        resample_rate=config["data"]["resample_rate"]
+        resample_rate=config["data"]["resample_rate"],
+        clear_issues=False
     )
 
     df_train_val = combine_and_sync(mains=mains_train_val, appliance=appliance_train_val)
@@ -505,6 +542,7 @@ def make_dataset():
 
 if __name__ == '__main__':
     X_train, y_train, X_val, y_val, X_test, y_test, norm_params = make_dataset()
+
 
 
 
