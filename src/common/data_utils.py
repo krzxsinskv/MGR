@@ -510,7 +510,7 @@ def make_dataset():
         start_date=config["data"]["test_range"][0],
         end_date=config["data"]["test_range"][1],
         resample_rate=config["data"]["resample_rate"],
-        clear_issues=False
+        clear_issues=True
     )
 
     df_train_val = combine_and_sync(mains=mains_train_val, appliance=appliance_train_val)
@@ -518,11 +518,12 @@ def make_dataset():
 
     df_train, df_val = split_train_val(df_train_val=df_train_val, val_ratio=0.1)
 
-    norm_params = compute_normalization_params(df=df_train)
+    norm_params_train = compute_normalization_params(df=df_train)
+    norm_params_test = compute_normalization_params(df=df_test)
 
-    df_train_norm = apply_normalization(df=df_train, params=norm_params)
-    df_val_norm = apply_normalization(df=df_val, params=norm_params)
-    df_test_norm = apply_normalization(df=df_test, params=norm_params)
+    df_train_norm = apply_normalization(df=df_train, params=norm_params_train)
+    df_val_norm = apply_normalization(df=df_val, params=norm_params_train)
+    df_test_norm = apply_normalization(df=df_test, params=norm_params_train)
 
     X_train, y_train = create_windowed_samples(
         df_train_norm[['aggregate_norm', 'appliance_norm']],
@@ -537,11 +538,13 @@ def make_dataset():
         window_length=config["data"]["window_size"]
     )
 
-    return X_train, y_train, X_val, y_val, X_test, y_test, norm_params
+    return X_train, y_train, X_val, y_val, X_test, y_test, norm_params_train, norm_params_test
 
 
 if __name__ == '__main__':
-    X_train, y_train, X_val, y_val, X_test, y_test, norm_params = make_dataset()
+    X_train, y_train, X_val, y_val, X_test, y_test, norm_params_train, norm_params_test = make_dataset()
+    print("train appliance_max:", norm_params_train['appliance_max'])
+    print("test  appliance_max:", norm_params_test['appliance_max'])
 
 
 

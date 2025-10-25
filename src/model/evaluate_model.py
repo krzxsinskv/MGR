@@ -65,24 +65,66 @@ def evaluate_model(model, X_test, y_test, app_max, batch_size=16, timestamp=None
     print("Pred min/max", y_pred.min(), y_pred.max())
     print("True min/max", y_true.min(), y_true.max())
 
-    plot_predictions(y_true, y_pred, 500, timestamp, save=True)
+    plot_predictions(y_true, y_pred, 2000, timestamp, save=True)
     plot_histogram(y_pred, bins=50, timestamp=timestamp, save=True)
 
     return mae, rmse, sae
 
 
 if __name__ == '__main__':
-    _, _, _, _, X_test, y_test, norm_params = make_dataset()
-    print("norm_params keys:", norm_params.keys())
-    print("appliance_max in norm_params:", norm_params.get('appliance_max'))
+    _, _, _, _, X_test, y_test, norm_params_train, norm_params_test = make_dataset()
+    print("norm_params keys:", norm_params_test.keys())
+    print("appliance_max in norm_params:", norm_params_test.get('appliance_max'))
     model = MODEL_ARCHITECTURES['STMModel']()
     model_path = 'models/2025-10-24_10-12_best_model.pth'
     model.load_state_dict(torch.load(model_path))
     timestamp = extract_timestamp(model_path)
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = model.to(device)
+    model.eval()
+
+    # Testowy kawałek danych
+    X_tensor = torch.tensor(X_test[:32], dtype=torch.float32).unsqueeze(1).to(device)
+
+    with torch.no_grad():
+        batch_size, _, seq_len = X_tensor.shape
+
+        # Spatial features
+        spatial_small = model.spatial_small(X_tensor)
+        spatial_large = model.spatial_large(X_tensor)
+
+        # Temporal features
+        x_temp = X_tensor.permute(0, 2, 1)
+        out1, _ = model.bigru1(x_temp)
+        out2, _ = model.bigru2(out1)
+        out3, _ = model.bigru3(out2)
+        temporal = out3.permute(0, 2, 1)
+
+        # Połączenie
+        features = torch.cat([spatial_small, spatial_large, temporal], dim=1)
+        Ft = model.cbam(features)
+
+        # Flatten + fully connected
+        flat = torch.flatten(Ft, start_dim=1)
+        fc = model.relu(model.fc1(flat))
+
+        linear_out = model.output_linear(fc)
+        sigmoid_out = torch.sigmoid(model.output_sigmoid(fc))
+        final_out = linear_out * sigmoid_out
+
+        print("📊 Diagnostyka STMModel:")
+        print("linear_out:  min/max/mean:",
+              linear_out.min().item(), linear_out.max().item(), linear_out.mean().item())
+        print("sigmoid_out: min/max/mean:",
+              sigmoid_out.min().item(), sigmoid_out.max().item(), sigmoid_out.mean().item())
+        print("final_out:   min/max/mean:",
+              final_out.min().item(), final_out.max().item(), final_out.mean().item())
+
     evaluate_model(
         model=model,
         X_test=X_test,
         y_test=y_test,
-        app_max=norm_params['appliance_max'],
+        app_max=norm_params_train['appliance_max'],
         batch_size=16,
         timestamp=timestamp)
