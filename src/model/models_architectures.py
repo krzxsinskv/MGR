@@ -68,11 +68,11 @@ class STMModel(nn.Module):
         flat = torch.flatten(Ft, start_dim=1)  # (B, 188 * T)
         fc = self.relu(self.fc1(flat))  # (B, 1024)
 
-        # linear_out = self.dropout(self.output_linear(fc))           # (B, 1)
-        # sigmoid_out = self.dropout(torch.sigmoid(self.output_sigmoid(fc)))  # (B, 1)
+        linear_out = self.dropout(self.output_linear(fc))           # (B, 1)
+        sigmoid_out = self.dropout(torch.sigmoid(self.output_sigmoid(fc)))  # (B, 1)
 
-        output = self.output_linear(fc)
-        # output = linear_out * sigmoid_out
+        # output = self.output_linear(fc)
+        output = linear_out * sigmoid_out
         # output = F.relu(self.output_linear(fc)) # element-wise multiplication
 
         return output
