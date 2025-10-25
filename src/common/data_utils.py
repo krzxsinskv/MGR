@@ -346,26 +346,16 @@ def compute_normalization_params(df):
 
 def apply_normalization(df, params):
     """
-    Applies min-max normalization to 'aggregate' and 'appliance' columns
-    using the provided normalization parameters.
+    Applies normalization according to the article:
+      - Aggregate: min-max normalization
+      - Appliance: division by max value
 
-    Formula:
-        x_norm = (x - min) / (max - min)
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-        DataFrame containing 'aggregate' and 'appliance' columns.
-    params : dict
-        Normalization parameters (output of compute_normalization_params).
-
-    Returns
-    -------
-    df_norm : pd.DataFrame
-        DataFrame with new columns 'aggregate_norm' and 'appliance_norm'.
+    Formulas:
+        aggregate_norm = (aggregate - min) / (max - min)
+        appliance_norm = appliance / appliance_max
     """
     logger = setup_logger()
-    logger.info("Applying normalization to dataset...")
+    logger.info("Applying normalization to dataset (article-consistent)...")
     logger.info(f"Input DataFrame shape: {df.shape}")
 
     if 'aggregate' not in df.columns or 'appliance' not in df.columns:
@@ -376,12 +366,11 @@ def apply_normalization(df, params):
         (df['aggregate'] - params['aggregate_min']) /
         (params['aggregate_max'] - params['aggregate_min'])
     )
-    df_norm['appliance_norm'] = (
-        (df['appliance'] - params['appliance_min']) /
-        (params['appliance_max'] - params['appliance_min'])
-    )
+    df_norm['appliance_norm'] = df['appliance'] / params['appliance_max']
 
-    logger.info("Normalization applied successfully.")
+    logger.info("Normalization applied successfully (article method).")
+    logger.info(f"Aggregate range normalized with min={params['aggregate_min']:.3f}, max={params['aggregate_max']:.3f}")
+    logger.info(f"Appliance normalized with max={params['appliance_max']:.3f}")
     logger.info(f"Resulting columns: {list(df_norm.columns)}")
 
     return df_norm

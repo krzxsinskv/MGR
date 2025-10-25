@@ -11,12 +11,12 @@ import matplotlib.pyplot as plt
 
 project_dir = Path(__file__).resolve().parents[2]
 sys.path.insert(1, os.path.join(sys.path[0], project_dir))
-from src.data.make_dataset import *
 from src.model.models_architectures import MODEL_ARCHITECTURES
-from src.model.utils import setup_logger, plot_predictions, extract_timestamp, plot_histogram
+from src.common.other_utils import setup_logger, plot_predictions, extract_timestamp, plot_histogram
+from src.common.data_utils import make_dataset
 
 
-def evaluate_model(model, X_test, y_test, app_max_test, batch_size=16, timestamp=None):
+def evaluate_model(model, X_test, y_test, app_max, batch_size=16, timestamp=None):
     logger = setup_logger()
     logger.info("Starting evaluation...")
 
@@ -49,8 +49,8 @@ def evaluate_model(model, X_test, y_test, app_max_test, batch_size=16, timestamp
     logger.info(f"Shape: {y_true.shape}, Min: {y_true.min()}, Max: {y_true.max()}, Mean: {y_true.mean()}")
 
     # Cofnięcie normalizacji
-    y_pred = y_pred * app_max_test.reshape(-1, 1)
-    y_true = y_true * app_max_test.reshape(-1, 1)
+    y_pred = y_pred * app_max
+    y_true = y_true * app_max
 
     # Metryki
     mae = np.mean(np.abs(y_pred - y_true))
@@ -72,11 +72,17 @@ def evaluate_model(model, X_test, y_test, app_max_test, batch_size=16, timestamp
 
 
 if __name__ == '__main__':
-    X_train, y_train, X_test, y_test, app_max_test = make_dataset()
+    _, _, _, _, X_test, y_test, norm_params = make_dataset()
+    print("norm_params keys:", norm_params.keys())
+    print("appliance_max in norm_params:", norm_params.get('appliance_max'))
     model = MODEL_ARCHITECTURES['STMModel']()
-    model_path = 'models/2025-06-03_17-27_best_model.pth'
+    model_path = 'models/2025-10-24_10-12_best_model.pth'
     model.load_state_dict(torch.load(model_path))
     timestamp = extract_timestamp(model_path)
-    evaluate_model(model, X_test, y_test, app_max_test, batch_size=16, timestamp=timestamp)
-
-
+    evaluate_model(
+        model=model,
+        X_test=X_test,
+        y_test=y_test,
+        app_max=norm_params['appliance_max'],
+        batch_size=16,
+        timestamp=timestamp)
