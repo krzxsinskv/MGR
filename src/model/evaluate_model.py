@@ -50,6 +50,7 @@ def evaluate_model(model, X_test, y_test, app_max, batch_size=16, timestamp=None
 
     # Cofnięcie normalizacji
     y_pred = y_pred * app_max
+    y_pred = np.clip(y_pred, 0, None)
     y_true = y_true * app_max
 
     # Metryki
@@ -72,11 +73,9 @@ def evaluate_model(model, X_test, y_test, app_max, batch_size=16, timestamp=None
 
 
 if __name__ == '__main__':
-    _, _, _, _, X_test, y_test, norm_params_train, norm_params_test = make_dataset()
-    print("norm_params keys:", norm_params_test.keys())
-    print("appliance_max in norm_params:", norm_params_test.get('appliance_max'))
+    _, _, _, _, X_test, y_test, norm_params = make_dataset()
     model = MODEL_ARCHITECTURES['STMModel']()
-    model_path = 'models/2025-10-24_10-12_best_model.pth'
+    model_path = 'models/2025-10-25_15-59_best_model.pth'
     model.load_state_dict(torch.load(model_path))
     timestamp = extract_timestamp(model_path)
 
@@ -125,6 +124,6 @@ if __name__ == '__main__':
         model=model,
         X_test=X_test,
         y_test=y_test,
-        app_max=norm_params_train['appliance_max'],
+        app_max=norm_params['appliance_max'],
         batch_size=16,
         timestamp=timestamp)
