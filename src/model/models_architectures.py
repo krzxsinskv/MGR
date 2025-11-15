@@ -71,8 +71,13 @@ class STMModel(nn.Module):
         linear_out = self.dropout(self.output_linear(fc))           # (B, 1)
         sigmoid_out = self.dropout(torch.sigmoid(self.output_sigmoid(fc)))  # (B, 1)
 
+        # LINEAR ACRIVATION
         # output = self.output_linear(fc)
+
+        # ARTICLE'S ACRIVATION
         output = linear_out * sigmoid_out
+
+        # RELU ACTIVATION
         # output = F.relu(self.output_linear(fc)) # element-wise multiplication
 
         return output

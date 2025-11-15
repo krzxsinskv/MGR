@@ -50,7 +50,10 @@ def evaluate_model(model, X_test, y_test, app_max, batch_size=16, timestamp=None
 
     # Cofnięcie normalizacji
     y_pred = y_pred * app_max
-    y_pred = np.clip(y_pred, 0, None)
+
+    # CLIPPING
+    # y_pred = np.clip(y_pred, 0, None)
+
     y_true = y_true * app_max
 
     # Metryki
@@ -78,47 +81,6 @@ if __name__ == '__main__':
     model_path = 'models/2025-10-25_17-55_best_model.pth'
     model.load_state_dict(torch.load(model_path))
     timestamp = extract_timestamp(model_path)
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = model.to(device)
-    model.eval()
-
-    # Testowy kawałek danych
-    X_tensor = torch.tensor(X_test[:32], dtype=torch.float32).unsqueeze(1).to(device)
-
-    with torch.no_grad():
-        batch_size, _, seq_len = X_tensor.shape
-
-        # Spatial features
-        spatial_small = model.spatial_small(X_tensor)
-        spatial_large = model.spatial_large(X_tensor)
-
-        # Temporal features
-        x_temp = X_tensor.permute(0, 2, 1)
-        out1, _ = model.bigru1(x_temp)
-        out2, _ = model.bigru2(out1)
-        out3, _ = model.bigru3(out2)
-        temporal = out3.permute(0, 2, 1)
-
-        # Połączenie
-        features = torch.cat([spatial_small, spatial_large, temporal], dim=1)
-        Ft = model.cbam(features)
-
-        # Flatten + fully connected
-        flat = torch.flatten(Ft, start_dim=1)
-        fc = model.relu(model.fc1(flat))
-
-        linear_out = model.output_linear(fc)
-        sigmoid_out = torch.sigmoid(model.output_sigmoid(fc))
-        final_out = linear_out * sigmoid_out
-
-        print("📊 Diagnostyka STMModel:")
-        print("linear_out:  min/max/mean:",
-              linear_out.min().item(), linear_out.max().item(), linear_out.mean().item())
-        print("sigmoid_out: min/max/mean:",
-              sigmoid_out.min().item(), sigmoid_out.max().item(), sigmoid_out.mean().item())
-        print("final_out:   min/max/mean:",
-              final_out.min().item(), final_out.max().item(), final_out.mean().item())
 
     evaluate_model(
         model=model,
