@@ -336,77 +336,96 @@ def split_train_val(df_train_val, val_ratio=0.1):
     return df_train, df_val
 
 
-def compute_normalization_params(df):
+import numpy as np
+import pandas as pd
+
+
+def compute_normalization_params(df, method="minmax", clip_quantile=0.995):
     """
-    Computes min and max values for 'aggregate' and 'appliance' columns,
-    which will be used for min-max normalization.
+    Compute parameters required for different normalization strategies.
 
     Parameters
     ----------
     df : pd.DataFrame
-        Input DataFrame containing 'aggregate' and 'appliance' columns.
+    method : str
+        Supported: ["minmax", "clipped_minmax"]
+    clip_quantile : float
+        Only used when method='clipped_minmax'
 
     Returns
     -------
     params : dict
-        Dictionary with min and max values for both signals.
-        Example:
-        {
-            'aggregate_min': ...,
-            'aggregate_max': ...,
-            'appliance_min': ...,
-            'appliance_max': ...
-        }
     """
     logger = setup_logger()
-    logger.info("Computing normalization parameters...")
-    logger.info(f"Input DataFrame shape: {df.shape}")
+    logger.info(f"Computing normalization params using method: {method}")
 
     if 'aggregate' not in df.columns or 'appliance' not in df.columns:
         raise ValueError("DataFrame must contain 'aggregate' and 'appliance' columns.")
 
-    params = {
-        'aggregate_min': df['aggregate'].min(),
-        'aggregate_max': df['aggregate'].max(),
-        'appliance_min': df['appliance'].min(),
-        'appliance_max': df['appliance'].max(),
-    }
+    params = {}
 
-    logger.info(f"Aggregate range: {params['aggregate_min']:.4f} → {params['aggregate_max']:.4f}")
-    logger.info(f"Appliance range: {params['appliance_min']:.4f} → {params['appliance_max']:.4f}")
-    logger.info("Normalization parameters computed successfully.")
+    if method == "minmax":
+        # original method
+        params["aggregate_min"] = df["aggregate"].min()
+        params["aggregate_max"] = df["aggregate"].max()
 
+    elif method == "clipped_minmax":
+        clip_val = df["aggregate"].quantile(clip_quantile)
+        params["aggregate_min"] = 0.0
+        params["aggregate_max"] = clip_val
+        params["clip_quantile"] = clip_quantile
+        logger.info(f"Clipping aggregate at {clip_quantile*100:.2f}% → {clip_val:.3f}")
+
+    else:
+        raise ValueError(f"Unknown normalization method: {method}")
+
+    # Appliance is always normalized by max (literature standard)
+    params["appliance_max"] = df["appliance"].max()
+
+    logger.info(f"Params computed: {params}")
     return params
 
 
-def apply_normalization(df, params):
+def apply_normalization(df, params, method="minmax"):
     """
-    Applies normalization according to the article:
-      - Aggregate: min-max normalization
-      - Appliance: division by max value
+    Apply normalization based on saved params.
 
-    Formulas:
-        aggregate_norm = (aggregate - min) / (max - min)
-        appliance_norm = appliance / appliance_max
+    Parameters
+    ----------
+    df : pd.DataFrame
+    params : dict
+    method : str
+        Supported: ["minmax", "clipped_minmax"]
+
+    Returns
+    -------
+    df_norm : pd.DataFrame
     """
     logger = setup_logger()
-    logger.info("Applying normalization to dataset (article-consistent)...")
-    logger.info(f"Input DataFrame shape: {df.shape}")
+    logger.info(f"Applying normalization using method: {method}")
 
     if 'aggregate' not in df.columns or 'appliance' not in df.columns:
         raise ValueError("DataFrame must contain 'aggregate' and 'appliance' columns.")
 
     df_norm = df.copy()
-    df_norm['aggregate_norm'] = (
-        (df['aggregate'] - params['aggregate_min']) /
-        (params['aggregate_max'] - params['aggregate_min'])
-    )
-    df_norm['appliance_norm'] = df['appliance'] / params['appliance_max']
 
-    logger.info("Normalization applied successfully (article method).")
-    logger.info(f"Aggregate range normalized with min={params['aggregate_min']:.3f}, max={params['aggregate_max']:.3f}")
-    logger.info(f"Appliance normalized with max={params['appliance_max']:.3f}")
-    logger.info(f"Resulting columns: {list(df_norm.columns)}")
+    # --- Aggregate normalization ---
+    if method == "minmax":
+        df_norm["aggregate_norm"] = (
+            (df["aggregate"] - params["aggregate_min"])
+            / (params["aggregate_max"] - params["aggregate_min"])
+        )
+
+    elif method == "clipped_minmax":
+        clip_val = params["aggregate_max"]
+        clipped = np.clip(df["aggregate"], 0, clip_val)
+        df_norm["aggregate_norm"] = clipped / clip_val
+
+    else:
+        raise ValueError(f"Unknown normalization method: {method}")
+
+    # --- Appliance normalization ---
+    df_norm["appliance_norm"] = df["appliance"] / params["appliance_max"]
 
     return df_norm
 
@@ -518,11 +537,11 @@ def make_dataset():
 
     df_train, df_val = split_train_val(df_train_val=df_train_val, val_ratio=0.1)
 
-    norm_params = compute_normalization_params(df=df_train)
+    norm_params = compute_normalization_params(df=df_train, method='clipped_minmax', clip_quantile=0.995)
 
-    df_train_norm = apply_normalization(df=df_train, params=norm_params)
-    df_val_norm = apply_normalization(df=df_val, params=norm_params)
-    df_test_norm = apply_normalization(df=df_test, params=norm_params)
+    df_train_norm = apply_normalization(df=df_train, params=norm_params, method='clipped_minmax')
+    df_val_norm = apply_normalization(df=df_val, params=norm_params, method='clipped_minmax')
+    df_test_norm = apply_normalization(df=df_test, params=norm_params, method='clipped_minmax')
 
     X_train, y_train = create_windowed_samples(
         df_train_norm[['aggregate_norm', 'appliance_norm']],
@@ -542,15 +561,4 @@ def make_dataset():
 
 if __name__ == '__main__':
     X_train, y_train, X_val, y_val, X_test, y_test, norm_params_train = make_dataset()
-    print("train appliance_max:", norm_params_train['appliance_max'])
-
-
-
-
-
-    
-    
-
-
-
-
+    print(norm_params_train)
