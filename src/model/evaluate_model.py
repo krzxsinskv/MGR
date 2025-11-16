@@ -94,7 +94,7 @@ def evaluate_model(
 if __name__ == '__main__':
     _, _, _, _, X_test, y_test, norm_params = make_dataset()
     model = MODEL_ARCHITECTURES['STMModel']()
-    model_path = 'models/2025-11-15_11-46_best_model.pth'
+    model_path = 'models/2025-11-16_19-57_best_model.pth'
     model.load_state_dict(torch.load(model_path))
     timestamp = extract_timestamp(model_path)
 

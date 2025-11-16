@@ -231,25 +231,44 @@ def prepare_data(
         appliance = appliance.loc[start_date:end_date]
 
         # Optionally clear issues (only for train/val)
+        # if clear_issues:
+        #     issues = house_data.get("issues")
+        #     if issues is not None:
+        #         issues = issues.loc[start_date:end_date]
+        #         mask_issue = issues['Issues'] == 1
+        #         mask_bad = mask_issue & (appliance.iloc[:, 0] > mains.iloc[:, 0])
+        #
+        #         n_cleared = mask_bad.sum()
+        #         total_samples = len(mask_bad)
+        #         percent_cleared = (n_cleared / total_samples * 100) if total_samples > 0 else 0.0
+        #
+        #         # Appliance == 0 in faulty samples
+        #         appliance = appliance.copy()
+        #         appliance.loc[mask_bad, appliance.columns[0]] = 0
+        #
+        #         logger.info(
+        #             f"Cleared {n_cleared} issue samples "
+        #             f"({percent_cleared:.2f}% of total, Issues==1 & appliance>mains)."
+        #         )
+        # ALL ISSUES == 1
         if clear_issues:
             issues = house_data.get("issues")
             if issues is not None:
                 issues = issues.loc[start_date:end_date]
-                mask_issue = issues['Issues'] == 1
-                mask_bad = mask_issue & (appliance.iloc[:, 0] > mains.iloc[:, 0])
+                mask_issue = issues["Issues"] == 1
 
-                n_cleared = mask_bad.sum()
-                total_samples = len(mask_bad)
-                percent_cleared = (n_cleared / total_samples * 100) if total_samples > 0 else 0.0
-
-                # Appliance == 0 in faulty samples
-                appliance = appliance.copy()
-                appliance.loc[mask_bad, appliance.columns[0]] = 0
+                n_removed = mask_issue.sum()
+                total = len(mask_issue)
+                percent = (n_removed / total * 100) if total > 0 else 0.0
 
                 logger.info(
-                    f"Cleared {n_cleared} issue samples "
-                    f"({percent_cleared:.2f}% of total, Issues==1 & appliance>mains)."
+                    f"Removing {n_removed} samples ({percent:.2f}%) due to Issues==1 "
+                    "(REFIT: unreliable submetering readings)."
                 )
+
+                # Remove these samples from both mains and appliance
+                mains = mains.loc[~mask_issue]
+                appliance = appliance.loc[~mask_issue]
 
         if mains.empty or appliance.empty:
             raise ValueError(f"No data in time window {start_date}–{end_date} for house {house_id}")
