@@ -16,11 +16,19 @@ from src.common.other_utils import setup_logger, plot_predictions, extract_times
 from src.common.data_utils import make_dataset
 
 
-def evaluate_model(model, X_test, y_test, app_max, batch_size=16, timestamp=None):
+def evaluate_model(
+    model,
+    X_test,
+    y_test,
+    params,
+    method="minmax",
+    batch_size=16,
+    timestamp=None,
+):
     logger = setup_logger()
-    logger.info("Starting evaluation...")
+    logger.info(f"Starting evaluation using normalization method: {method}")
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     logger.info(f"Using device: {device}")
     model = model.to(device)
     model.eval()
@@ -28,7 +36,10 @@ def evaluate_model(model, X_test, y_test, app_max, batch_size=16, timestamp=None
     X_test_tensor = torch.tensor(X_test, dtype=torch.float32).unsqueeze(1).to(device)
     y_test_tensor = torch.tensor(y_test, dtype=torch.float32).unsqueeze(1).to(device)
 
-    test_loader = DataLoader(TensorDataset(X_test_tensor, y_test_tensor), batch_size=batch_size)
+    test_loader = DataLoader(
+        TensorDataset(X_test_tensor, y_test_tensor),
+        batch_size=batch_size
+    )
 
     all_preds = []
     all_targets = []
@@ -42,21 +53,26 @@ def evaluate_model(model, X_test, y_test, app_max, batch_size=16, timestamp=None
     y_pred = np.concatenate(all_preds)
     y_true = np.concatenate(all_targets)
 
-    logger.info("Predicted values (y_pred):")
-    logger.info(f"Shape: {y_pred.shape}, Min: {y_pred.min()}, Max: {y_pred.max()}, Mean: {y_pred.mean()}")
+    logger.info(f"Predicted (normalized) range: {y_pred.min():.4f} – {y_pred.max():.4f}")
+    logger.info(f"True (normalized) range:     {y_true.min():.4f} – {y_true.max():.4f}")
 
-    logger.info("True values (y_true):")
-    logger.info(f"Shape: {y_true.shape}, Min: {y_true.min()}, Max: {y_true.max()}, Mean: {y_true.mean()}")
+    app_max = params["appliance_max"]
 
-    # Cofnięcie normalizacji
-    y_pred = y_pred * app_max
+    if method == "minmax":
+        y_pred = y_pred * app_max
+        y_true = y_true * app_max
 
-    # CLIPPING
+    elif method == "clipped_minmax":
+        y_pred = y_pred * app_max
+        y_true = y_true * app_max
+
+    else:
+        raise ValueError(f"Unknown normalization method: {method}")
+
+    # Optional clipping after denormalization
     # y_pred = np.clip(y_pred, 0, None)
 
-    y_true = y_true * app_max
-
-    # Metryki
+    # Metrics
     mae = np.mean(np.abs(y_pred - y_true))
     rmse = np.sqrt(np.mean((y_pred - y_true) ** 2))
     sae = np.abs(np.sum(y_pred) - np.sum(y_true)) / np.sum(y_true)
@@ -86,6 +102,7 @@ if __name__ == '__main__':
         model=model,
         X_test=X_test,
         y_test=y_test,
-        app_max=norm_params['appliance_max'],
+        params=norm_params,
+        method='clipped_minmax',
         batch_size=16,
         timestamp=timestamp)
