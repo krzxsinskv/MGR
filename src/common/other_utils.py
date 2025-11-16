@@ -162,3 +162,91 @@ def plot_histogram(y_pred, bins, timestamp, save=True):
         plt.show()
     else:
         plt.show()
+
+
+def extract_fusion_features(model, input_tensor):
+    """
+    Performs a forward pass through the STM model and returns the fusion
+    feature map captured by the forward-pre-hook
+
+    Parameters:
+        model: STMModel instance with registered hooks
+        input_tensor: torch.Tensor of shape (B, 1, seq_len)
+
+    Returns:
+        torch.Tensor: fusion feature map of shape (1, 188, T)
+    """
+
+    # Set model to evaluation mode (disables dropout, ensures deterministic behavior)
+    model.eval()
+
+    # Reset previously captured values
+    model.captured["fusion_features"] = None
+
+    # Forward pass
+    with torch.no_grad():
+        _ = model(input_tensor)
+
+    return model.captured["fusion_features"]
+
+
+def plot_fusion_feature_map(fusion_features, timestamp, save=True):
+    """
+    Plots a colored fusion feature map based on the extracted
+    fusion features captured by the model hook.
+
+    Parameters:
+        fusion_features (torch.Tensor or np.ndarray):
+            Tensor of shape (1, 188, T) or squeezed to (188, T).
+        timestamp (str):
+            A string used to name the saved plot (e.g., datetime).
+        save (bool):
+            Whether to save the generated plot to disk.
+
+    Returns:
+        None
+    """
+
+    # Initialize logger
+    logger = setup_logger()
+    logger.info("Starting fusion feature map visualization...")
+
+    # Convert tensor to numpy array
+    if isinstance(fusion_features, torch.Tensor):
+        logger.info("Converting tensor input to NumPy array.")
+        fusion_features = fusion_features.squeeze().cpu().numpy()
+
+    # Validate shape
+    assert fusion_features.ndim == 2, "Fusion_features must be 2D after squeeze()."
+    logger.info(f"Fusion feature map shape: {fusion_features.shape}")
+
+    # Begin plotting
+    logger.info("Generating heatmap...")
+    plt.figure(figsize=(8, 6), dpi=120)
+
+    plt.imshow(
+        fusion_features,
+        aspect='auto',
+        cmap="inferno",           # closest to article style
+        interpolation='nearest'
+    )
+
+    plt.colorbar(label="Feature intensity")
+    plt.title("Fusion Feature Map (Fig. 9 Style)", fontsize=14)
+    plt.xlabel("Time steps", fontsize=12)
+    plt.ylabel("Feature channels", fontsize=12)
+    plt.grid(False)
+    plt.tight_layout()
+
+    # Save or show
+    if save:
+        save_dir = os.path.join("results", "fusion_feature_maps")
+        os.makedirs(save_dir, exist_ok=True)
+        save_path = os.path.join(save_dir, f"{timestamp}_ffmap.png")
+
+        plt.savefig(save_path)
+        logger.info(f"Saved fusion feature map to: {save_path}")
+        plt.show()
+    else:
+        logger.info("Displaying fusion feature map without saving.")
+        plt.show()

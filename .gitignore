@@ -9,6 +9,7 @@
 /results/losses/*.png
 /results/histograms/*.png
 /results/predictions/*.png
+/results/fusion_feature_maps/*.png
 
 # Datasets
 /datasets/h5/*.h5
