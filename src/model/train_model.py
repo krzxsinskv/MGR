@@ -18,12 +18,24 @@ project_dir = Path(__file__).resolve().parents[2]
 sys.path.insert(1, os.path.join(sys.path[0], project_dir))
 from src.model.models_architectures import MODEL_ARCHITECTURES
 from src.common.data_utils import make_dataset
-from src.common.other_utils import get_timestamp, setup_logger, plot_losses
+from src.common.other_utils import get_timestamp, setup_logger, plot_losses, load_yaml_config
 
 
 def train_model(X_train, y_train, X_val, y_val, model, lr=0.0001, batch_size=16, max_epochs=20, patience=2):
     logger = setup_logger()
     logger.info("Preparing training and validation datasets...")
+
+    config = load_yaml_config("configs/paths.yaml")
+    paths = config["output"]
+
+    models_dir = paths["models"]
+    losses_dir = paths["results"]["losses"]
+
+    os.makedirs(models_dir, exist_ok=True)
+    os.makedirs(losses_dir, exist_ok=True)
+
+    logger.info(f"Model directory: {models_dir}")
+    logger.info(f"Loss plots directory: {losses_dir}")
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logger.info(f"Using device: {device}")
@@ -62,7 +74,8 @@ def train_model(X_train, y_train, X_val, y_val, model, lr=0.0001, batch_size=16,
 
     os.makedirs("models", exist_ok=True)
     timestamp = get_timestamp()
-    model_path = f"models/{timestamp}_best_model.pth"
+    model_path = os.path.join(models_dir, f"{timestamp}_best_model.pth")
+    logger.info(f"Best model will be saved to: {model_path}")
 
     logger.info("Starting training...")
 
@@ -120,13 +133,13 @@ def train_model(X_train, y_train, X_val, y_val, model, lr=0.0001, batch_size=16,
     model.load_state_dict(torch.load(model_path))
     logger.info(f"Training complete. Best model loaded from {model_path}")
 
-    return model, model_path, train_losses, val_losses, timestamp
+    return model, model_path, train_losses, val_losses, timestamp, losses_dir
 
 
 if __name__ == '__main__':
     X_train, y_train, X_val, y_val, X_test, y_test, norm_params = make_dataset()
     model = MODEL_ARCHITECTURES['STMModel']()
-    trained_model, model_path, train_losses, val_losses, timestamp = train_model(
+    trained_model, model_path, train_losses, val_losses, timestamp, losses_dir = train_model(
         X_train=X_train,
         y_train=y_train,
         X_val=X_val,
@@ -136,7 +149,7 @@ if __name__ == '__main__':
         batch_size=16,
         max_epochs=20,
         patience=2)
-    plot_losses(trained_model, model_path, train_losses, val_losses, timestamp, save=True)
+    plot_losses(trained_model, model_path, train_losses, val_losses, timestamp, losses_dir, save=True)
 
 
 
