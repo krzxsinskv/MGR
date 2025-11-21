@@ -9,7 +9,6 @@ project_dir = Path(__file__).resolve().parents[2]
 sys.path.insert(1, os.path.join(sys.path[0], project_dir))
 from src.common.other_utils import setup_logger
 from src.common.other_utils import get_csv_paths_from_config, load_yaml_config
-from src.test.test_dataset import plot_mains_and_appliance, find_max_appliance_info
 
 
 def load_refit_csv_to_memory(csv_folder, appliance_map_path):
@@ -556,11 +555,11 @@ def make_dataset():
 
     df_train, df_val = split_train_val(df_train_val=df_train_val, val_ratio=0.1)
 
-    norm_params = compute_normalization_params(df=df_train, method='clipped_minmax', clip_quantile=0.995)
+    norm_params = compute_normalization_params(df=df_train, method='minmax')
 
-    df_train_norm = apply_normalization(df=df_train, params=norm_params, method='clipped_minmax')
-    df_val_norm = apply_normalization(df=df_val, params=norm_params, method='clipped_minmax')
-    df_test_norm = apply_normalization(df=df_test, params=norm_params, method='clipped_minmax')
+    df_train_norm = apply_normalization(df=df_train, params=norm_params, method='minmax')
+    df_val_norm = apply_normalization(df=df_val, params=norm_params, method='minmax')
+    df_test_norm = apply_normalization(df=df_test, params=norm_params, method='minmax')
 
     X_train, y_train = create_windowed_samples(
         df_train_norm[['aggregate_norm', 'appliance_norm']],

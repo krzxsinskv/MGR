@@ -103,6 +103,6 @@ if __name__ == '__main__':
         X_test=X_test,
         y_test=y_test,
         params=norm_params,
-        method='clipped_minmax',
+        method='minmax',
         batch_size=16,
         timestamp=timestamp)
