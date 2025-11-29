@@ -43,15 +43,6 @@ class STMModel(nn.Module):
         self.bigru2 = nn.GRU(input_size=32, hidden_size=32, batch_first=True, bidirectional=True)
         self.bigru3 = nn.GRU(input_size=64, hidden_size=64, batch_first=True, bidirectional=True)
 
-        # --- Feature extractor ---
-        self.feature_extractor = nn.ModuleList([
-            self.spatial_small,
-            self.spatial_large,
-            self.bigru1,
-            self.bigru2,
-            self.bigru3
-        ])
-
         # --- CBAM after concatenation ---
         self.cbam = CBAM(in_channels=30 + 30 + 128, model=self)  # 30 (small) + 30 (large) + 128 (BiGRU last layer)
 
