@@ -107,93 +107,64 @@ class STMModel(nn.Module):
 
 
 class ChannelAttention(nn.Module):
-    def __init__(self, in_channels, reduction_ratio=8, parent=None):
-        super(ChannelAttention, self).__init__()
-        self.parent = parent
+    def __init__(self, in_channels, reduction_ratio=8):
+        super().__init__()
+        reduced = max(1, in_channels // reduction_ratio)
+
         self.avg_pool = nn.AdaptiveAvgPool1d(1)
         self.max_pool = nn.AdaptiveMaxPool1d(1)
-        reduced = max(1, in_channels // reduction_ratio)
+
         self.shared_mlp = nn.Sequential(
-            nn.Conv1d(in_channels, reduced, kernel_size=1, stride=1, bias=False),
+            nn.Conv1d(in_channels, reduced, kernel_size=1, bias=False),
             nn.ReLU(),
-            nn.Conv1d(reduced, in_channels, kernel_size=1, stride=1, bias=False)
+            nn.Conv1d(reduced, in_channels, kernel_size=1, bias=False)
         )
+
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         avg_out = self.shared_mlp(self.avg_pool(x))
         max_out = self.shared_mlp(self.max_pool(x))
-        attention = self.sigmoid(avg_out + max_out)  # shape: (B, C, 1)
-
-        # use weakref stored on parent (CBAM) to update captured map
-        if self.parent is not None and hasattr(self.parent, "model_ref") and self.parent.model_ref is not None:
-            model_obj = self.parent.model_ref()
-            if model_obj is not None:
-                try:
-                    model_obj.captured["channel_attention_map"] = attention[0].detach().cpu()
-                except Exception:
-                    pass
-
-        return x * attention
+        attention = self.sigmoid(avg_out + max_out)
+        return x * attention, attention
 
 
 class SpatialAttention(nn.Module):
-    def __init__(self, kernel_size=7, parent=None):
-        super(SpatialAttention, self).__init__()
-        self.parent = parent
+    def __init__(self, kernel_size=7):
+        super().__init__()
         padding = (kernel_size - 1) // 2
-        self.conv = nn.Conv1d(2, 1, kernel_size=kernel_size, padding=padding, bias=False)
+        self.conv = nn.Conv1d(2, 1, kernel_size, padding=padding, bias=False)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
-        avg_out = torch.mean(x, dim=1, keepdim=True)
-        max_out, _ = torch.max(x, dim=1, keepdim=True)
-        concat = torch.cat([avg_out, max_out], dim=1)  # (B, 2, T)
-        attention = self.sigmoid(self.conv(concat))     # (B, 1, T)
-
-        if self.parent is not None and hasattr(self.parent, "model_ref") and self.parent.model_ref is not None:
-            model_obj = self.parent.model_ref()
-            if model_obj is not None:
-                try:
-                    model_obj.captured["spatial_attention_map"] = attention[0].detach().cpu()
-                except Exception:
-                    pass
-
-        return x * attention
+        avg = torch.mean(x, dim=1, keepdim=True)
+        max_, _ = torch.max(x, dim=1, keepdim=True)
+        concat = torch.cat([avg, max_], dim=1)
+        attention = self.sigmoid(self.conv(concat))
+        return x * attention, attention
 
 
 class CBAM(nn.Module):
-    def __init__(self, in_channels, reduction_ratio=8, spatial_kernel_size=7, model=None):
-        super(CBAM, self).__init__()
-        # store only a weak reference to outer model to avoid PyTorch registering it as a Module
-        self.model_ref = weakref.ref(model) if model is not None else None
-
-        self.channel_attention = ChannelAttention(in_channels, reduction_ratio, parent=self)
-        self.spatial_attention = SpatialAttention(spatial_kernel_size, parent=self)
+    def __init__(self, in_channels, reduction_ratio=8, kernel_size=7, model=None):
+        super().__init__()
+        self.model_ref = weakref.ref(model) if model else None
+        self.channel_attention = ChannelAttention(in_channels, reduction_ratio)
+        self.spatial_attention = SpatialAttention(kernel_size)
 
     def forward(self, x):
-        x_after_channel = self.channel_attention(x)
+        model = self.model_ref() if self.model_ref else None
 
-        # update captured if possible
-        if self.model_ref is not None:
-            model_obj = self.model_ref()
-            if model_obj is not None:
-                try:
-                    model_obj.captured["post_channel"] = x_after_channel[0].detach().cpu()
-                except Exception:
-                    pass
+        x_ca, ca_map = self.channel_attention(x)
+        if model:
+            model.captured["channel_attention_map"] = ca_map.detach().cpu()
+            model.captured["post_channel"] = x_ca.detach().cpu()
 
-        x_after_spatial = self.spatial_attention(x_after_channel)
+        x_sa, sa_map = self.spatial_attention(x_ca)
+        if model:
+            model.captured["spatial_attention_map"] = sa_map.detach().cpu()
+            model.captured["post_spatial"] = x_sa.detach().cpu()
 
-        if self.model_ref is not None:
-            model_obj = self.model_ref()
-            if model_obj is not None:
-                try:
-                    model_obj.captured["post_spatial"] = x_after_spatial[0].detach().cpu()
-                except Exception:
-                    pass
-
-        return x_after_spatial
+        return x_sa
 
 
 MODEL_ARCHITECTURES = {
