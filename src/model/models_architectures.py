@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import weakref
 import torch.nn.functional as F
 
 
@@ -129,8 +130,11 @@ class ChannelAttention(nn.Module):
         max_out = self.shared_mlp(self.max_pool(x))
         attention = self.sigmoid(avg_out + max_out)  # shape: (B, C, 1)
 
-        if self.parent is not None:
-            self.parent.model.captured["channel_attention_map"] = attention[0].detach().cpu()
+        # Access parent's weakref to update captured map if available
+        if self.parent is not None and hasattr(self.parent, "model_ref"):
+            parent_model = self.parent.model_ref()
+            if parent_model is not None:
+                parent_model.captured["channel_attention_map"] = attention[0].detach().cpu()
 
         return x * attention
 
@@ -149,8 +153,10 @@ class SpatialAttention(nn.Module):
         concat = torch.cat([avg_out, max_out], dim=1)  # (B, 2, T)
         attention = self.sigmoid(self.conv(concat))     # (B, 1, T)
 
-        if self.parent is not None:
-            self.parent.model.captured["spatial_attention_map"] = attention[0].detach().cpu()
+        if self.parent is not None and hasattr(self.parent, "model_ref"):
+            parent_model = self.parent.model_ref()
+            if parent_model is not None:
+                parent_model.captured["spatial_attention_map"] = attention[0].detach().cpu()
 
         return x * attention
 
@@ -158,7 +164,8 @@ class SpatialAttention(nn.Module):
 class CBAM(nn.Module):
     def __init__(self, in_channels, reduction_ratio=8, spatial_kernel_size=7, model=None):
         super(CBAM, self).__init__()
-        self.model = model
+        # store weak reference to outer model to avoid PyTorch registering it as submodule
+        self.model_ref = weakref.ref(model) if model is not None else None
 
         self.channel_attention = ChannelAttention(in_channels, reduction_ratio, parent=self)
         self.spatial_attention = SpatialAttention(spatial_kernel_size, parent=self)
@@ -166,11 +173,18 @@ class CBAM(nn.Module):
     def forward(self, x):
         x_after_channel = self.channel_attention(x)
 
-        self.model.captured["post_channel"] = x_after_channel[0].detach().cpu()
+        # Update captured via weakref if possible
+        if self.model_ref is not None:
+            parent_model = self.model_ref()
+            if parent_model is not None:
+                parent_model.captured["post_channel"] = x_after_channel[0].detach().cpu()
 
         x_after_spatial = self.spatial_attention(x_after_channel)
 
-        self.model.captured["post_spatial"] = x_after_spatial[0].detach().cpu()
+        if self.model_ref is not None:
+            parent_model = self.model_ref()
+            if parent_model is not None:
+                parent_model.captured["post_spatial"] = x_after_spatial[0].detach().cpu()
 
         return x_after_spatial
 
