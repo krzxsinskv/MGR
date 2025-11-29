@@ -520,7 +520,7 @@ def create_windowed_samples(df, window_length=100):
 
 
 def make_dataset():
-    config = load_yaml_config(yaml_path="configs/article1_case1.yaml")
+    config = load_yaml_config(yaml_path="configs/case1.yaml")
 
     csv_paths = get_csv_paths_from_config(
         csv_folder=os.path.join("datasets", config["data"]["dataset"]),
