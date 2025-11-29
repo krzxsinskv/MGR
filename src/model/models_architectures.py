@@ -10,7 +10,11 @@ class STMModel(nn.Module):
 
         # Storage for hook outputs
         self.captured = {
-            "fusion_features": None
+            "fusion_features": None,
+            "channel_attention_map": None,
+            "post_channel": None,
+            "spatial_attention_map": None,
+            "post_spatial": None
         }
 
         # --- Spatial features with small kernel ---
@@ -48,7 +52,7 @@ class STMModel(nn.Module):
         ])
 
         # --- CBAM after concatenation ---
-        self.cbam = CBAM(in_channels=30 + 30 + 128)  # 30 (small) + 30 (large) + 128 (BiGRU last layer)
+        self.cbam = CBAM(in_channels=30 + 30 + 128, model=self)  # 30 (small) + 30 (large) + 128 (BiGRU last layer)
 
         # --- Output Module ---
         self.fc1 = nn.Linear((30 + 30 + 128) * seq_len, 1024)  # 188 * seq_len
@@ -108,8 +112,9 @@ class STMModel(nn.Module):
 
 
 class ChannelAttention(nn.Module):
-    def __init__(self, in_channels, reduction_ratio=8):
+    def __init__(self, in_channels, reduction_ratio=8, parent=None):
         super(ChannelAttention, self).__init__()
+        self.parent = parent
         self.avg_pool = nn.AdaptiveAvgPool1d(1)
         self.max_pool = nn.AdaptiveMaxPool1d(1)
         self.shared_mlp = nn.Sequential(
@@ -123,12 +128,17 @@ class ChannelAttention(nn.Module):
         avg_out = self.shared_mlp(self.avg_pool(x))
         max_out = self.shared_mlp(self.max_pool(x))
         attention = self.sigmoid(avg_out + max_out)  # shape: (B, C, 1)
-        return x * attention  # Multiply by channel attention
+
+        if self.parent is not None:
+            self.parent.model.captured["channel_attention_map"] = attention[0].detach().cpu()
+
+        return x * attention
 
 
 class SpatialAttention(nn.Module):
-    def __init__(self, kernel_size=7):
+    def __init__(self, kernel_size=7, parent=None):
         super(SpatialAttention, self).__init__()
+        self.parent = parent
         padding = (kernel_size - 1) // 2
         self.conv = nn.Conv1d(2, 1, kernel_size=kernel_size, padding=padding, bias=False)
         self.sigmoid = nn.Sigmoid()
@@ -136,21 +146,33 @@ class SpatialAttention(nn.Module):
     def forward(self, x):
         avg_out = torch.mean(x, dim=1, keepdim=True)
         max_out, _ = torch.max(x, dim=1, keepdim=True)
-        concat = torch.cat([avg_out, max_out], dim=1)  # shape: (B, 2, T)
-        attention = self.sigmoid(self.conv(concat))  # shape: (B, 1, T)
-        return x * attention  # Multiply by channel attention
+        concat = torch.cat([avg_out, max_out], dim=1)  # (B, 2, T)
+        attention = self.sigmoid(self.conv(concat))     # (B, 1, T)
+
+        if self.parent is not None:
+            self.parent.model.captured["spatial_attention_map"] = attention[0].detach().cpu()
+
+        return x * attention
 
 
 class CBAM(nn.Module):
-    def __init__(self, in_channels, reduction_ratio=8, spatial_kernel_size=7):
+    def __init__(self, in_channels, reduction_ratio=8, spatial_kernel_size=7, model=None):
         super(CBAM, self).__init__()
-        self.channel_attention = ChannelAttention(in_channels, reduction_ratio)
-        self.spatial_attention = SpatialAttention(spatial_kernel_size)
+        self.model = model
+
+        self.channel_attention = ChannelAttention(in_channels, reduction_ratio, parent=self)
+        self.spatial_attention = SpatialAttention(spatial_kernel_size, parent=self)
 
     def forward(self, x):
-        x = self.channel_attention(x)
-        x = self.spatial_attention(x)
-        return x
+        x_after_channel = self.channel_attention(x)
+
+        self.model.captured["post_channel"] = x_after_channel[0].detach().cpu()
+
+        x_after_spatial = self.spatial_attention(x_after_channel)
+
+        self.model.captured["post_spatial"] = x_after_spatial[0].detach().cpu()
+
+        return x_after_spatial
 
 
 MODEL_ARCHITECTURES = {
