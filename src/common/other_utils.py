@@ -105,6 +105,29 @@ def load_yaml_config(yaml_path):
     return config
 
 
+def merge_dicts(base, override):
+    for k, v in override.items():
+        if (
+            k in base
+            and isinstance(base[k], dict)
+            and isinstance(v, dict)
+        ):
+            merge_dicts(base[k], v)
+        else:
+            base[k] = v
+    return base
+
+
+def load_case_config(case_number: int):
+    base = load_yaml_config("configs/base.yaml")
+    case_path = f"configs/case{case_number}.yaml"
+
+    case_cfg = load_yaml_config(case_path)
+
+    final_cfg = merge_dicts(base, case_cfg)
+    return final_cfg
+
+
 def plot_losses(model, model_path, train_losses, val_losses, timestamp, losses_dir, save=True):
     logger = setup_logger()
     logger.info('Plotting train and validation losses')

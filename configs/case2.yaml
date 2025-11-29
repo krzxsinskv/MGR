@@ -1,12 +1,12 @@
 experiment:
-  name: "case1"
-  description: "Self-training model (STM) per appliance"
+  name: "case2"
+  description: "Appliance Transfer (AT) with benchmark model"
 
 data:
   dataset: "refit"
   houses:
     - 9
   appliances:
-    - fridge
+    - microwave
   train_range: ["2015-01-01", "2015-07-01"]
   test_range: ["2014-12-01", "2014-12-10"]

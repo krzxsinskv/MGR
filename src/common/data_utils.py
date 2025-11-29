@@ -8,7 +8,7 @@ from pathlib import Path
 project_dir = Path(__file__).resolve().parents[2]
 sys.path.insert(1, os.path.join(sys.path[0], project_dir))
 from src.common.other_utils import setup_logger
-from src.common.other_utils import get_csv_paths_from_config, load_yaml_config
+from src.common.other_utils import get_csv_paths_from_config, load_case_config
 
 
 def load_refit_csv_to_memory(csv_folder, appliance_map_path):
@@ -519,8 +519,8 @@ def create_windowed_samples(df, window_length=100):
     return X, y
 
 
-def make_dataset():
-    config = load_yaml_config(yaml_path="configs/case1.yaml")
+def make_dataset(case_number: int):
+    config = load_case_config(case_number)
 
     csv_paths = get_csv_paths_from_config(
         csv_folder=os.path.join("datasets", config["data"]["dataset"]),
@@ -538,7 +538,7 @@ def make_dataset():
         start_date=config["data"]["train_range"][0],
         end_date=config["data"]["train_range"][1],
         resample_rate=config["data"]["resample_rate"],
-        clear_issues=True
+        clear_issues=config["data"]["clear_issues"]
     )
     mains_test, appliance_test = prepare_data(
         data_dict=data,
@@ -547,19 +547,19 @@ def make_dataset():
         start_date=config["data"]["test_range"][0],
         end_date=config["data"]["test_range"][1],
         resample_rate=config["data"]["resample_rate"],
-        clear_issues=True
+        clear_issues=config["data"]["clear_issues"]
     )
 
     df_train_val = combine_and_sync(mains=mains_train_val, appliance=appliance_train_val)
     df_test = combine_and_sync(mains=mains_test, appliance=appliance_test)
 
-    df_train, df_val = split_train_val(df_train_val=df_train_val, val_ratio=0.1)
+    df_train, df_val = split_train_val(df_train_val=df_train_val, val_ratio=config["data"]["val_ratio"])
 
-    norm_params = compute_normalization_params(df=df_train, method='minmax')
+    norm_params = compute_normalization_params(df=df_train, method=config["normalization"]["method"])
 
-    df_train_norm = apply_normalization(df=df_train, params=norm_params, method='minmax')
-    df_val_norm = apply_normalization(df=df_val, params=norm_params, method='minmax')
-    df_test_norm = apply_normalization(df=df_test, params=norm_params, method='minmax')
+    df_train_norm = apply_normalization(df=df_train, params=norm_params, method=config["normalization"]["method"])
+    df_val_norm = apply_normalization(df=df_val, params=norm_params, method=config["normalization"]["method"])
+    df_test_norm = apply_normalization(df=df_test, params=norm_params, method=config["normalization"]["method"])
 
     X_train, y_train = create_windowed_samples(
         df_train_norm[['aggregate_norm', 'appliance_norm']],
@@ -574,9 +574,9 @@ def make_dataset():
         window_length=config["data"]["window_size"]
     )
 
-    return X_train, y_train, X_val, y_val, X_test, y_test, norm_params
+    return X_train, y_train, X_val, y_val, X_test, y_test, norm_params, config
 
 
 if __name__ == '__main__':
-    X_train, y_train, X_val, y_val, X_test, y_test, norm_params_train = make_dataset()
+    X_train, y_train, X_val, y_val, X_test, y_test, norm_params_train, config = make_dataset(case_number=1)
     print(norm_params_train)

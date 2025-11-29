@@ -92,9 +92,9 @@ def evaluate_model(
 
 
 if __name__ == '__main__':
-    _, _, _, _, X_test, y_test, norm_params = make_dataset()
-    model = MODEL_ARCHITECTURES['STMModel']()
-    model_path = 'models/2025-11-16_21-52_best_model.pth'
+    _, _, _, _, X_test, y_test, norm_params, config = make_dataset(case_number=1)
+    model = MODEL_ARCHITECTURES[config["model"]["type"]]()
+    model_path = 'models/2025-11-25_15-23_best_model.pth'
     model.load_state_dict(torch.load(model_path))
     timestamp = extract_timestamp(model_path)
 
@@ -103,6 +103,6 @@ if __name__ == '__main__':
         X_test=X_test,
         y_test=y_test,
         params=norm_params,
-        method='minmax',
-        batch_size=16,
+        method=config["normalization"]["method"],
+        batch_size=config["model"]["params"]["batch_size"],
         timestamp=timestamp)

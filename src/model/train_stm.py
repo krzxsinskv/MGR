@@ -18,15 +18,15 @@ project_dir = Path(__file__).resolve().parents[2]
 sys.path.insert(1, os.path.join(sys.path[0], project_dir))
 from src.model.models_architectures import MODEL_ARCHITECTURES
 from src.common.data_utils import make_dataset
-from src.common.other_utils import get_timestamp, setup_logger, plot_losses, load_yaml_config
+from src.common.other_utils import get_timestamp, setup_logger, plot_losses, load_yaml_config, merge_dicts
 
 
 def train_model(X_train, y_train, X_val, y_val, model, lr=0.0001, batch_size=16, max_epochs=20, patience=2):
     logger = setup_logger()
     logger.info("Preparing training and validation datasets...")
 
-    config = load_yaml_config("configs/paths.yaml")
-    paths = config["output"]
+    config_paths = load_yaml_config("configs/paths_drive.yaml")
+    paths = config_paths["output"]
 
     models_dir = paths["models"]
     losses_dir = paths["results"]["losses"]
@@ -137,18 +137,18 @@ def train_model(X_train, y_train, X_val, y_val, model, lr=0.0001, batch_size=16,
 
 
 if __name__ == '__main__':
-    X_train, y_train, X_val, y_val, X_test, y_test, norm_params = make_dataset()
-    model = MODEL_ARCHITECTURES['STMModel']()
+    X_train, y_train, X_val, y_val, X_test, y_test, norm_params, config = make_dataset(case_number=1)
+    model = MODEL_ARCHITECTURES[config["model"]["type"]]()
     trained_model, model_path, train_losses, val_losses, timestamp, losses_dir = train_model(
         X_train=X_train,
         y_train=y_train,
         X_val=X_val,
         y_val=y_val,
         model=model,
-        lr=0.0001,
-        batch_size=16,
-        max_epochs=20,
-        patience=2)
+        lr=config["training"]["learning_rate"],
+        batch_size=config["training"]["batch_size"],
+        max_epochs=config["training"]["max_epochs"],
+        patience=config["training"]["patience"])
     plot_losses(trained_model, model_path, train_losses, val_losses, timestamp, losses_dir, save=True)
 
 

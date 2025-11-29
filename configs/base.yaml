@@ -1,0 +1,21 @@
+paths:
+  appliance_map: "datasets/metadata/refit_appliance_map.json"
+
+data:
+  resample_rate: "30S"
+  window_size: 100
+  clear_issues: True
+  val_ratio: 0.1
+
+normalization:
+  method: "minmax"
+  clip_quantile: 0.995
+
+model:
+  type: "STMModel"
+
+training:
+  max_epochs: 20
+  batch_size: 16
+  learning_rate: 0.0001
+  patience: 2
