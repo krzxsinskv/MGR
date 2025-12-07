@@ -94,7 +94,7 @@ def evaluate_model(
 if __name__ == '__main__':
     _, _, _, _, X_test, y_test, norm_params, config = make_dataset(case_number=1)
     model = MODEL_ARCHITECTURES[config["model"]["type"]]()
-    model_path = 'models/2025-11-25_15-23_best_model.pth'
+    model_path = 'models/2025-11-29_18-06_best_model.pth'
     model.load_state_dict(torch.load(model_path))
     timestamp = extract_timestamp(model_path)
 
@@ -104,5 +104,5 @@ if __name__ == '__main__':
         y_test=y_test,
         params=norm_params,
         method=config["normalization"]["method"],
-        batch_size=config["model"]["params"]["batch_size"],
+        batch_size=config["training"]["batch_size"],
         timestamp=timestamp)

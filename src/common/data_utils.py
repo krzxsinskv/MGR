@@ -358,21 +358,30 @@ import numpy as np
 import pandas as pd
 
 
-def compute_normalization_params(df, method="minmax", clip_quantile=0.995):
+def compute_normalization_params(df, method="minmax", clip_quantile=0.995, clip_value=5000):
     """
     Compute parameters required for different normalization strategies.
 
     Parameters
     ----------
     df : pd.DataFrame
+        Must contain 'aggregate' and 'appliance' columns.
     method : str
-        Supported: ["minmax", "clipped_minmax"]
-    clip_quantile : float
-        Only used when method='clipped_minmax'
+        Normalization method. Supported:
+            - "minmax"
+            - "clipped_quantile_minmax"
+            - "clipped_value_minmax"
+    clip_quantile : float, optional
+        Used only when method='clipped_quantile_minmax'.
+        Defines quantile threshold for clipping.
+    clip_value : float, optional
+        Used only when method='clipped_value_minmax'.
+        Explicit clipping value.
 
     Returns
     -------
     params : dict
+        Dictionary containing normalization parameters.
     """
     logger = setup_logger()
     logger.info(f"Computing normalization params using method: {method}")
@@ -382,42 +391,61 @@ def compute_normalization_params(df, method="minmax", clip_quantile=0.995):
 
     params = {}
 
+    # --- MIN-MAX normalization ---
     if method == "minmax":
-        # original method
         params["aggregate_min"] = df["aggregate"].min()
         params["aggregate_max"] = df["aggregate"].max()
 
-    elif method == "clipped_minmax":
+    # --- CLIPPED QUANTILE MIN-MAX ---
+    elif method == "clipped_quantile_minmax":
         clip_val = df["aggregate"].quantile(clip_quantile)
         params["aggregate_min"] = 0.0
         params["aggregate_max"] = clip_val
         params["clip_quantile"] = clip_quantile
         logger.info(f"Clipping aggregate at {clip_quantile*100:.2f}% → {clip_val:.3f}")
 
+    # --- CLIPPED VALUE MIN-MAX ---
+    elif method == "clipped_value_minmax":
+        if clip_value is None:
+            raise ValueError("clip_value must be provided when using 'clipped_value_minmax'.")
+
+        params["aggregate_min"] = 0.0
+        params["aggregate_max"] = float(clip_value)
+        params["clip_value"] = float(clip_value)
+        logger.info(f"Clipping aggregate using explicit value → {clip_value:.3f}")
+
     else:
         raise ValueError(f"Unknown normalization method: {method}")
 
-    # Appliance is always normalized by max (literature standard)
+    # Appliance normalization (literature standard)
     params["appliance_max"] = df["appliance"].max()
-
     logger.info(f"Params computed: {params}")
+
     return params
 
 
 def apply_normalization(df, params, method="minmax"):
     """
-    Apply normalization based on saved params.
+    Apply normalization based on precomputed parameters.
 
     Parameters
     ----------
     df : pd.DataFrame
+        Must contain 'aggregate' and 'appliance' columns.
     params : dict
+        Normalization parameters returned by compute_normalization_params().
     method : str
-        Supported: ["minmax", "clipped_minmax"]
+        Normalization method. Supported:
+            - "minmax"
+            - "clipped_quantile_minmax"
+            - "clipped_value_minmax"
 
     Returns
     -------
     df_norm : pd.DataFrame
+        DataFrame with added columns:
+            - 'aggregate_norm'
+            - 'appliance_norm'
     """
     logger = setup_logger()
     logger.info(f"Applying normalization using method: {method}")
@@ -427,22 +455,27 @@ def apply_normalization(df, params, method="minmax"):
 
     df_norm = df.copy()
 
-    # --- Aggregate normalization ---
+    # --- AGGREGATE NORMALIZATION ---
     if method == "minmax":
         df_norm["aggregate_norm"] = (
-            (df["aggregate"] - params["aggregate_min"])
-            / (params["aggregate_max"] - params["aggregate_min"])
+            (df["aggregate"] - params["aggregate_min"]) /
+            (params["aggregate_max"] - params["aggregate_min"])
         )
 
-    elif method == "clipped_minmax":
+    elif method == "clipped_quantile_minmax":
         clip_val = params["aggregate_max"]
+        clipped = np.clip(df["aggregate"], 0, clip_val)
+        df_norm["aggregate_norm"] = clipped / clip_val
+
+    elif method == "clipped_value_minmax":
+        clip_val = params["aggregate_max"]  # clip_value stored here
         clipped = np.clip(df["aggregate"], 0, clip_val)
         df_norm["aggregate_norm"] = clipped / clip_val
 
     else:
         raise ValueError(f"Unknown normalization method: {method}")
 
-    # --- Appliance normalization ---
+    # --- APPLIANCE NORMALIZATION ---
     df_norm["appliance_norm"] = df["appliance"] / params["appliance_max"]
 
     return df_norm

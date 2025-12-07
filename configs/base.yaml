@@ -8,8 +8,9 @@ data:
   val_ratio: 0.1
 
 normalization:
-  method: "minmax"
+  method: "clipped_value_minmax"
   clip_quantile: 0.995
+  clip_value: 5000
 
 model:
   type: "STMModel"
