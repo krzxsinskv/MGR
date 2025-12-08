@@ -74,7 +74,7 @@ def evaluate_model(
         raise ValueError(f"Unknown normalization method: {method}")
 
     # Optional clipping after denormalization
-    # y_pred = np.clip(y_pred, 0, None)
+    y_pred = np.clip(y_pred, 0, None)
 
     # Metrics
     mae = np.mean(np.abs(y_pred - y_true))
