@@ -44,11 +44,6 @@ class STMModel(nn.Module):
         self.bigru2 = nn.GRU(input_size=32, hidden_size=32, batch_first=True, bidirectional=True)
         self.bigru3 = nn.GRU(input_size=64, hidden_size=64, batch_first=True, bidirectional=True)
 
-        # NOTE: we DO NOT create ModuleList with modules already registered as attributes.
-        # Creating ModuleList([...self.spatial_small...]) would re-register those submodules and may cause weird cycles.
-
-        # --- CBAM after concatenation ---
-        # pass weak ref via CBAM constructor (CBAM stores weakref internally)
         self.cbam = CBAM(in_channels=30 + 30 + 128, model=self)
 
         # --- Output Module ---
@@ -68,10 +63,8 @@ class STMModel(nn.Module):
             try:
                 self.captured["fusion_features"] = input[0].detach().cpu()
             except Exception:
-                # defensive: in case input[0] not a tensor or requires grad
                 pass
 
-        # Register pre-forward hook on cbam itself
         self.cbam.register_forward_pre_hook(fusion_pre_hook)
 
     def forward(self, x):
@@ -97,10 +90,17 @@ class STMModel(nn.Module):
         # Output module
         flat = torch.flatten(Ft, start_dim=1)  # (B, 188 * T)
         fc = self.relu(self.fc1(flat))  # (B, 1024)
+        ###
+        fc = self.dropout(fc)
 
-        linear_out = self.dropout(self.output_linear(fc))           # (B, 1)
-        sigmoid_out = self.dropout(torch.sigmoid(self.output_sigmoid(fc)))  # (B, 1)
+        linear_out = self.output_linear(fc)
+        sigmoid_out = torch.sigmoid(self.output_sigmoid(fc))
 
+        ###
+
+        # linear_out = self.dropout(self.output_linear(fc))           # (B, 1)
+        # sigmoid_out = self.dropout(torch.sigmoid(self.output_sigmoid(fc)))  # (B, 1)
+        #
         output = linear_out * sigmoid_out
 
         return output
@@ -170,10 +170,3 @@ class CBAM(nn.Module):
 MODEL_ARCHITECTURES = {
     'STMModel': STMModel
 }
-
-
-MODEL_ARCHITECTURES = {
-    'STMModel': STMModel
-}
-
-
