@@ -168,7 +168,6 @@ def plot_predictions(y_true, y_pred, samples, timestamp, save=True):
 
         plt.savefig(save_path)
         logger.info(f"Saved predicted values plot to {save_path}")
-        plt.show()
     else:
         plt.show()
 
@@ -188,7 +187,6 @@ def plot_histogram(y_pred, bins, timestamp, save=True):
 
         plt.savefig(save_path)
         logger.info(f"Saved predicted values plot to {save_path}")
-        plt.show()
     else:
         plt.show()
 
@@ -275,7 +273,38 @@ def plot_fusion_feature_map(fusion_features, timestamp, save=True):
 
         plt.savefig(save_path)
         logger.info(f"Saved fusion feature map to: {save_path}")
-        plt.show()
     else:
         logger.info("Displaying fusion feature map without saving.")
         plt.show()
+
+
+def save_metrics_to_txt(
+    mae,
+    rmse,
+    sae,
+    y_pred,
+    y_true,
+    timestamp,
+    save_dir="results/metrics"
+):
+    os.makedirs(save_dir, exist_ok=True)
+
+    filename = f"{timestamp}_metrics.txt"
+    filepath = os.path.join(save_dir, filename)
+
+    with open(filepath, "w") as f:
+        f.write("Evaluation Metrics\n")
+        f.write("===================\n\n")
+
+        f.write(f"MAE:  {mae:.4f}\n")
+        f.write(f"RMSE: {rmse:.4f}\n")
+        f.write(f"SAE:  {sae:.4f}\n\n")
+
+        f.write("Prediction Ranges\n")
+        f.write("=================\n")
+        f.write(f"Predicted min: {y_pred.min():.6f}\n")
+        f.write(f"Predicted max: {y_pred.max():.6f}\n")
+        f.write(f"True min:      {y_true.min():.6f}\n")
+        f.write(f"True max:      {y_true.max():.6f}\n")
+
+    return filepath

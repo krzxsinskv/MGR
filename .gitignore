@@ -10,6 +10,7 @@
 /results/histograms/*.png
 /results/predictions/*.png
 /results/fusion_feature_maps/*.png
+/results/metrics/*.txt
 
 # Datasets
 /datasets/h5/*.h5

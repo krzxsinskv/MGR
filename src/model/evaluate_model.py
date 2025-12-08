@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 project_dir = Path(__file__).resolve().parents[2]
 sys.path.insert(1, os.path.join(sys.path[0], project_dir))
 from src.model.models_architectures import MODEL_ARCHITECTURES
-from src.common.other_utils import setup_logger, plot_predictions, extract_timestamp, plot_histogram
+from src.common.other_utils import setup_logger, plot_predictions, extract_timestamp, plot_histogram, save_metrics_to_txt
 from src.common.data_utils import make_dataset
 
 
@@ -89,6 +89,17 @@ def evaluate_model(
     print("Pred min/max", y_pred.min(), y_pred.max())
     print("True min/max", y_true.min(), y_true.max())
 
+    metrics_path = save_metrics_to_txt(
+        mae=mae,
+        rmse=rmse,
+        sae=sae,
+        y_pred=y_pred,
+        y_true=y_true,
+        timestamp=timestamp
+    )
+
+    logger.info(f"Saved metrics to {metrics_path}")
+
     plot_predictions(y_true, y_pred, 2000, timestamp, save=True)
     plot_histogram(y_pred, bins=50, timestamp=timestamp, save=True)
 
@@ -98,7 +109,7 @@ def evaluate_model(
 if __name__ == '__main__':
     _, _, _, _, X_test, y_test, norm_params, config = make_dataset(case_number=1)
     model = MODEL_ARCHITECTURES[config["model"]["type"]]()
-    model_path = 'models/2025-12-07_23-19_best_model.pth'
+    model_path = config["evaluation"]["model"]
     model.load_state_dict(torch.load(model_path))
     timestamp = extract_timestamp(model_path)
 
