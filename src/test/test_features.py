@@ -10,7 +10,7 @@ from src.common.other_utils import extract_fusion_features, plot_fusion_feature_
 
 if __name__ == '__main__':
     model = MODEL_ARCHITECTURES['STMModel']()
-    model_path = "models/2025-11-15_11-46_best_model.pth"
+    model_path = "models/2025-12-08_00-57_best_model.pth"
     model.load_state_dict(torch.load(model_path, map_location="cpu"))
     sample = torch.randn(1, 1, 100)
     fusion = extract_fusion_features(model, sample)

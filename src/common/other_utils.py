@@ -5,6 +5,7 @@ import yaml
 import matplotlib.pyplot as plt
 import torch
 from datetime import datetime
+import numpy as np
 
 
 def setup_logger():
@@ -189,6 +190,20 @@ def plot_histogram(y_pred, bins, timestamp, save=True):
         logger.info(f"Saved predicted values plot to {save_path}")
     else:
         plt.show()
+
+
+def create_input_sample():
+    T = 100
+    x = np.zeros(T)
+    np.random.seed(0)
+    baseline_noise = np.random.normal(0.003, 0.0008, size=T)
+    window = 5
+    baseline_smoothed = np.convolve(baseline_noise, np.ones(window) / window, mode='same')
+    x += baseline_smoothed
+    x[25:35] += 0.39 + np.random.uniform(-0.01, 0.01, size=10)
+    x[50] = 0.38
+
+    return x
 
 
 def extract_fusion_features(model, input_tensor):
