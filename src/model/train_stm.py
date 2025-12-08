@@ -126,7 +126,7 @@ def train_model(X_train, y_train, X_val, y_val, model, lr=0.0001, batch_size=16,
         else:
             epochs_no_improve += 1
             logger.info(f"Epoch {epoch+1} - No improvement. Patience: {epochs_no_improve}/{patience}")
-            if epochs_no_improve >= patience:
+            if epochs_no_improve > patience:
                 logger.info(f"Early stopping triggered at epoch {epoch+1}.")
                 break
 
