@@ -151,11 +151,11 @@ if __name__ == '__main__':
     X_train, y_train, X_val, y_val, X_test, y_test, norm_params, config = make_dataset(case_number=2)
 
     # Load pre-trained CASE 1 model
-    case1_path = config["transfer_learning"]["benchmark_model"]
+    benchmark_path = config["transfer_learning"]["benchmark_model"]
     base_model_type = config["model"]["type"]
 
     model = MODEL_ARCHITECTURES[base_model_type]()
-    model.load_state_dict(torch.load(case1_path))
+    model.load_state_dict(torch.load(benchmark_path))
 
     # Freeze
     model = freeze_layers(model)

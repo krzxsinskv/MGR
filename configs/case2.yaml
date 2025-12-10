@@ -12,4 +12,4 @@ data:
   test_range: ["2014-12-01", "2014-12-10"]
 
 transfer_learning:
-  benchmark_model: "models/2025-12-08_20-03_best_model.pth"
+  benchmark_model: "/content/drive/MyDrive/MGR/benchmark/fridge.pth"
