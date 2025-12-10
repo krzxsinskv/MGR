@@ -15,17 +15,22 @@ from src.common.other_utils import get_timestamp, setup_logger, plot_losses, loa
 
 
 def freeze_layers(model):
+    logger = setup_logger()
+
     # Freeze Feature Extraction Module
+    logger.info("Freezing Feature Extraction Module: spatial_small, spatial_large, bigru1, bigru2, bigru3")
     for module in [model.spatial_small, model.spatial_large,
                    model.bigru1, model.bigru2, model.bigru3]:
         for param in module.parameters():
             param.requires_grad = False
 
     # Freeze nothing inside CBAM (Feature Adaptive Module trains)
+    logger.info("Unfreezing Feature Adaptive Module (CBAM)")
     for param in model.cbam.parameters():
         param.requires_grad = True
 
     # Output Module trains
+    logger.info("Unfreezing Output Module: fc1, output_linear, output_sigmoid")
     for module in [model.fc1, model.output_linear, model.output_sigmoid]:
         for param in module.parameters():
             param.requires_grad = True
