@@ -22,4 +22,4 @@ training:
   patience: 2
 
 evaluation:
-  model: "models/2025-12-08_21-41_best_model.pth"
+  model: "models/2025-12-10_14-32_best_model.pth"

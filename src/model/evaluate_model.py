@@ -100,14 +100,14 @@ def evaluate_model(
 
     logger.info(f"Saved metrics to {metrics_path}")
 
-    plot_predictions(y_true, y_pred, 2000, timestamp, save=True)
+    plot_predictions(y_true, y_pred, 20000, timestamp, save=True)
     plot_histogram(y_pred, bins=50, timestamp=timestamp, save=True)
 
     return mae, rmse, sae
 
 
 if __name__ == '__main__':
-    _, _, _, _, X_test, y_test, norm_params, config = make_dataset(case_number=1)
+    _, _, _, _, X_test, y_test, norm_params, config = make_dataset(case_number=2)
     model = MODEL_ARCHITECTURES[config["model"]["type"]]()
     model_path = config["evaluation"]["model"]
     model.load_state_dict(torch.load(model_path))
