@@ -301,6 +301,8 @@ def save_metrics_to_txt(
     y_pred,
     y_true,
     timestamp,
+    energy_true_kwh=None,     # NEW
+    energy_pred_kwh=None,     # NEW
     save_dir="results/metrics"
 ):
     os.makedirs(save_dir, exist_ok=True)
@@ -323,4 +325,171 @@ def save_metrics_to_txt(
         f.write(f"True min:      {y_true.min():.6f}\n")
         f.write(f"True max:      {y_true.max():.6f}\n")
 
+        if energy_true_kwh is not None and energy_pred_kwh is not None:
+            f.write("Energy Consumption\n")
+            f.write("===================\n")
+            f.write(f"True energy (kWh):      {energy_true_kwh:.6f}\n")
+            f.write(f"Predicted energy (kWh): {energy_pred_kwh:.6f}\n")
+
     return filepath
+
+
+def plot_channel_attention_map(channel_map, timestamp, save=True):
+    """
+    Plots the channel attention map (Fig. 10a style).
+
+    Parameters:
+        channel_map (torch.Tensor or np.ndarray):
+            Shape (C, 1) or squeeze() -> (C,).
+        timestamp (str):
+            Identifier for saved filename.
+        save (bool):
+            Save or just display.
+
+    Returns:
+        None
+    """
+    logger = setup_logger()
+    logger.info("Starting channel attention map visualization...")
+
+    # Convert to numpy
+    if isinstance(channel_map, torch.Tensor):
+        logger.info("Converting tensor input to NumPy array.")
+        channel_map = channel_map.squeeze().cpu().numpy()
+
+    # Ensure shape is (C, 1) or (C,)
+    assert channel_map.ndim in (1, 2), "Channel map must be 1D or 2D after squeeze()."
+    if channel_map.ndim == 1:
+        channel_map = channel_map[:, None]
+
+    logger.info(f"Channel attention map shape: {channel_map.shape}")
+
+    # Plot
+    plt.figure(figsize=(4, 8), dpi=120)
+    plt.imshow(
+        channel_map,
+        aspect='auto',
+        cmap="inferno",
+        interpolation='nearest'
+    )
+    plt.colorbar(label="Attention weight")
+    plt.title("Channel Attention Map (Fig. 10a)", fontsize=14)
+    plt.xlabel("Attention")
+    plt.ylabel("Channels")
+    plt.tight_layout()
+
+    # Save
+    if save:
+        save_dir = os.path.join("results", "channel_attention_maps")
+        os.makedirs(save_dir, exist_ok=True)
+        save_path = os.path.join(save_dir, f"{timestamp}_channel_attention.png")
+
+        plt.savefig(save_path)
+        logger.info(f"Saved channel attention map to: {save_path}")
+    else:
+        logger.info("Displaying channel attention map without saving.")
+        plt.show()
+
+
+def plot_spatial_attention_map(spatial_map, timestamp, save=True):
+    """
+    Plots the spatial attention map (Fig. 10c style).
+
+    Parameters:
+        spatial_map (torch.Tensor or np.ndarray):
+            Shape (1, T) or squeeze() -> (T,).
+        timestamp (str)
+        save (bool)
+
+    Returns:
+        None
+    """
+    logger = setup_logger()
+    logger.info("Starting spatial attention map visualization...")
+
+    if isinstance(spatial_map, torch.Tensor):
+        logger.info("Converting tensor input to NumPy array.")
+        spatial_map = spatial_map.squeeze().cpu().numpy()
+
+    assert spatial_map.ndim in (1, 2), "Spatial map must be 1D or 2D after squeeze()."
+    if spatial_map.ndim == 1:
+        spatial_map = spatial_map[None, :]
+
+    logger.info(f"Spatial attention map shape: {spatial_map.shape}")
+
+    plt.figure(figsize=(10, 3), dpi=120)
+    plt.imshow(
+        spatial_map,
+        aspect='auto',
+        cmap="inferno",
+        interpolation='nearest'
+    )
+    plt.colorbar(label="Attention weight")
+    plt.title("Spatial Attention Map (Fig. 10c)", fontsize=14)
+    plt.xlabel("Time steps")
+    plt.ylabel("Spatial attention")
+    plt.tight_layout()
+
+    if save:
+        save_dir = os.path.join("results", "spatial_attention_maps")
+        os.makedirs(save_dir, exist_ok=True)
+        save_path = os.path.join(save_dir, f"{timestamp}_spatial_attention.png")
+
+        plt.savefig(save_path)
+        logger.info(f"Saved spatial attention map to: {save_path}")
+    else:
+        logger.info("Displaying spatial attention map without saving.")
+        plt.show()
+
+
+def plot_post_attention_feature_map(feature_map, timestamp, save=True, stage="post_channel"):
+    """
+    Plots fusion features after channel or spatial attention
+    (Fig. 10b or Fig. 10d style).
+
+    Parameters:
+        feature_map (torch.Tensor or np.ndarray):
+            Shape (C, T)
+        timestamp (str)
+        save (bool)
+        stage (str): "post_channel" or "post_spatial"
+
+    Returns:
+        None
+    """
+    logger = setup_logger()
+    logger.info(f"Starting {stage} feature map visualization...")
+
+    if isinstance(feature_map, torch.Tensor):
+        logger.info("Converting tensor input to NumPy array.")
+        feature_map = feature_map.squeeze().cpu().numpy()
+
+    assert feature_map.ndim == 2, "Feature map must be 2D (C, T)."
+    logger.info(f"{stage} map shape: {feature_map.shape}")
+
+    plt.figure(figsize=(8, 6), dpi=120)
+    plt.imshow(
+        feature_map,
+        aspect='auto',
+        cmap="inferno",
+        interpolation='nearest'
+    )
+    plt.colorbar(label="Feature intensity")
+    plt.title(
+        f"Fusion Features After {stage.replace('_', ' ').title()} (Fig. 10)",
+        fontsize=14
+    )
+    plt.xlabel("Time steps")
+    plt.ylabel("Feature channels")
+    plt.tight_layout()
+
+    if save:
+        save_dir = os.path.join("results", f"{stage}_maps")
+        os.makedirs(save_dir, exist_ok=True)
+        save_path = os.path.join(save_dir, f"{timestamp}_{stage}.png")
+
+        plt.savefig(save_path)
+        logger.info(f"Saved {stage} feature map to: {save_path}")
+    else:
+        logger.info(f"Displaying {stage} feature map without saving.")
+        plt.show()

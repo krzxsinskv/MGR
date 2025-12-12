@@ -89,13 +89,24 @@ def evaluate_model(
     print("Pred min/max", y_pred.min(), y_pred.max())
     print("True min/max", y_true.min(), y_true.max())
 
+    sampling_seconds = params.get("sampling_rate_seconds", 30)
+    factor = sampling_seconds / 3600  # conversion to kWh
+
+    energy_pred_kwh = np.sum(y_pred) * factor
+    energy_true_kwh = np.sum(y_true) * factor
+
+    logger.info(f"True energy consumption:      {energy_true_kwh:.4f} kWh")
+    logger.info(f"Predicted energy consumption: {energy_pred_kwh:.4f} kWh")
+
     metrics_path = save_metrics_to_txt(
         mae=mae,
         rmse=rmse,
         sae=sae,
         y_pred=y_pred,
         y_true=y_true,
-        timestamp=timestamp
+        timestamp=timestamp,
+        energy_true_kwh=energy_true_kwh,
+        energy_pred_kwh=energy_pred_kwh
     )
 
     logger.info(f"Saved metrics to {metrics_path}")

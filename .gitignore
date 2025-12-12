@@ -11,6 +11,10 @@
 /results/predictions/*.png
 /results/fusion_feature_maps/*.png
 /results/metrics/*.txt
+/results/channel_attention_maps/*.png
+/results/post_channel_maps/*.png
+/results/post_spatial_maps/*.png
+/results/spatial_attention_maps/*.png
 
 # Datasets
 /datasets/h5/*.h5

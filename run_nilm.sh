@@ -12,6 +12,6 @@ if [[ $? -ne 0 ]]; then
     exit 1
 fi
 
-python src/common/data_utils.py
+python src/model/evaluate_model.py
 
 echo "Python script executed successfully."
