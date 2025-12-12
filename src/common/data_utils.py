@@ -178,6 +178,35 @@ def prepare_data(
     resample_rate="30S",
     clear_issues=True
 ):
+    """
+    Prepares in-memory REFIT data for a given house and appliance.
+    Ensures time alignment, trims data to the specified date range,
+    resamples to a uniform frequency, interpolates missing values,
+    and optionally clears 'Issues' samples.
+
+    Parameters
+    ----------
+    data_dict : dict
+        Dictionary returned by `load_refit_csv`, containing data organized by house and appliance.
+    house_id : int or str
+        ID of the house to process.
+    appliance_name : str
+        Name of the appliance (lowercase recommended).
+    start_date : str
+        Start date for slicing (e.g. '2015-01-01').
+    end_date : str
+        End date for slicing (e.g. '2015-07-01').
+    resample_rate : str, optional
+        Pandas-compatible resampling rate string (default '30S').
+    clear_issues : bool, optional
+        If True, clears samples where Issues == 1 and appliance > mains.
+        Should be True for training/validation, False for testing.
+
+    Returns
+    -------
+    mains_resampled, appliance_resampled : pd.DataFrame
+        Resampled and aligned dataframes indexed by datetime.
+    """
     logger = setup_logger()
     logger.info(f"Preparing data for house {house_id}, appliance '{appliance_name}' (clear_issues={clear_issues})")
 
@@ -200,57 +229,63 @@ def prepare_data(
         mains = mains.loc[start_date:end_date]
         appliance = appliance.loc[start_date:end_date]
 
-        if mains.empty or appliance.empty:
-            raise ValueError(f"No data in time window {start_date}–{end_date} for house {house_id}")
-
-        # ----------------------------------------------------------------------
-        # 1) RESAMPLE + INTERPOLATE (na czystych danych, nic nie usuwamy tutaj)
-        # ----------------------------------------------------------------------
-        logger.info(f"Resampling data to {resample_rate}")
-        mains_resampled = mains.resample(resample_rate).mean().interpolate(method='time')
-        appliance_resampled = appliance.resample(resample_rate).mean().interpolate(method='time')
-
-        # ----------------------------------------------------------------------
-        # 2) Remove bad bins AFTER resampling (BEST STRATEGY)
-        # ----------------------------------------------------------------------
+        # Optionally clear issues (only for train/val)
+        # if clear_issues:
+        #     issues = house_data.get("issues")
+        #     if issues is not None:
+        #         issues = issues.loc[start_date:end_date]
+        #         mask_issue = issues['Issues'] == 1
+        #         mask_bad = mask_issue & (appliance.iloc[:, 0] > mains.iloc[:, 0])
+        #
+        #         n_cleared = mask_bad.sum()
+        #         total_samples = len(mask_bad)
+        #         percent_cleared = (n_cleared / total_samples * 100) if total_samples > 0 else 0.0
+        #
+        #         # Appliance == 0 in faulty samples
+        #         appliance = appliance.copy()
+        #         appliance.loc[mask_bad, appliance.columns[0]] = 0
+        #
+        #         logger.info(
+        #             f"Cleared {n_cleared} issue samples "
+        #             f"({percent_cleared:.2f}% of total, Issues==1 & appliance>mains)."
+        #         )
+        # ALL ISSUES == 1
         if clear_issues:
             issues = house_data.get("issues")
             if issues is not None:
-                issues.index = pd.to_datetime(issues.index)
                 issues = issues.loc[start_date:end_date]
+                mask_issue = issues["Issues"] == 1
 
-                # Resample issues to same grid — mark a bin as bad if ANY Issue==1 occurred inside
-                issues_resampled = issues["Issues"].resample(resample_rate).max().fillna(0).astype(int)
-
-                mask_bad_bins = issues_resampled == 1
-                n_removed = mask_bad_bins.sum()
-                total_bins = len(issues_resampled)
-                percent = (n_removed / total_bins * 100) if total_bins > 0 else 0.0
+                n_removed = mask_issue.sum()
+                total = len(mask_issue)
+                percent = (n_removed / total * 100) if total > 0 else 0.0
 
                 logger.info(
-                    f"Removing {n_removed} resampled bins ({percent:.2f}%) due to Issues==1 "
+                    f"Removing {n_removed} samples ({percent:.2f}%) due to Issues==1 "
                     "(REFIT: unreliable submetering readings)."
                 )
 
-                # Drop by index alignment
-                mains_resampled = mains_resampled.loc[~mask_bad_bins]
-                appliance_resampled = appliance_resampled.loc[~mask_bad_bins]
+                # Remove these samples from both mains and appliance
+                mains = mains.loc[~mask_issue]
+                appliance = appliance.loc[~mask_issue]
 
-        # Final cleanup
-        mains_resampled = mains_resampled.dropna()
-        appliance_resampled = appliance_resampled.dropna()
+        if mains.empty or appliance.empty:
+            raise ValueError(f"No data in time window {start_date}–{end_date} for house {house_id}")
+
+        # Resample and interpolate
+        logger.info(f"Resampling data to {resample_rate}")
+        mains_resampled = mains.resample(resample_rate).mean().interpolate(method='time').dropna()
+        appliance_resampled = appliance.resample(resample_rate).mean().interpolate(method='time').dropna()
 
         logger.info(
             f"Data preparation completed successfully: {len(mains_resampled)} samples "
             f"({start_date} → {end_date})"
         )
-
         return mains_resampled, appliance_resampled
 
     except Exception as e:
         logger.error(f"Failed to prepare data for house {house_id}, appliance '{appliance_name}': {e}")
         return None, None
-
 
 
 def combine_and_sync(mains, appliance):
