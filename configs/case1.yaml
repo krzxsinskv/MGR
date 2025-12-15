@@ -10,3 +10,4 @@ data:
     - hi-fi
   train_range: ["2015-01-01", "2015-07-01"]
   test_range: ["2014-12-01", "2014-12-10"]
+  train_fraction: 1.0

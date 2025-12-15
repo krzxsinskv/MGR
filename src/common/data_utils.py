@@ -313,6 +313,54 @@ def combine_and_sync(mains, appliance):
     return df
 
 
+def subsample_training_data(
+    df_train: pd.DataFrame,
+    fraction: float,
+    seed: int = 42
+):
+    """
+    Randomly subsamples a fraction of the training data.
+
+    Parameters
+    ----------
+    df_train : pd.DataFrame
+        Full training dataset (time-indexed).
+    fraction : float
+        Fraction of training data to keep (0 < fraction <= 1).
+    seed : int
+        Random seed for reproducibility.
+
+    Returns
+    -------
+    df_train_sub : pd.DataFrame
+        Subsampled training dataset.
+    """
+    logger = setup_logger()
+
+    if not (0 < fraction <= 1.0):
+        raise ValueError("fraction must be in (0, 1].")
+
+    if fraction == 1.0:
+        logger.info("Using 100% of training data (no subsampling).")
+        return df_train
+
+    n_total = len(df_train)
+    n_keep = int(n_total * fraction)
+
+    df_sub = (
+        df_train
+        .sample(n=n_keep, random_state=seed)
+        .sort_index()
+    )
+
+    logger.info(
+        f"Subsampled training data: {n_keep}/{n_total} samples "
+        f"({fraction*100:.1f}%)"
+    )
+
+    return df_sub
+
+
 def split_train_val(df_train_val, val_ratio=0.1):
     """
     Splits a combined mains+appliance DataFrame into train and validation sets, preserving time order.
@@ -588,6 +636,8 @@ def make_dataset(case_number: int):
 
     df_train, df_val = split_train_val(df_train_val=df_train_val, val_ratio=config["data"]["val_ratio"])
 
+    df_train = subsample_training_data(df_train, fraction=config["data"]["train_fraction"])
+
     norm_params = compute_normalization_params(df=df_train, method=config["normalization"]["method"])
 
     df_train_norm = apply_normalization(df=df_train, params=norm_params, method=config["normalization"]["method"])
@@ -611,5 +661,5 @@ def make_dataset(case_number: int):
 
 
 if __name__ == '__main__':
-    X_train, y_train, X_val, y_val, X_test, y_test, norm_params_train, config = make_dataset(case_number=1)
+    X_train, y_train, X_val, y_val, X_test, y_test, norm_params_train, config = make_dataset(case_number=2)
     print(norm_params_train)
