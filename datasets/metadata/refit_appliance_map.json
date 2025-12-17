@@ -10,26 +10,37 @@
     "appliance8": "hi-fi",
     "appliance9": "electric_heater"
   },
-    "11": {
+    "1": {
     "appliance1": "fridge",
-    "appliance2": "fridge_freezer",
+    "appliance2": "freezer1",
+    "appliance3": "freezer2",
+    "appliance4": "washer_dryer",
+    "appliance5": "washing_machine",
+    "appliance6": "dishwasher",
+    "appliance7": "computer",
+    "appliance8": "television",
+    "appliance9": "electric_heater"
+  },
+    "2": {
+    "appliance1": "fridge",
+    "appliance2": "washing_machine",
+    "appliance3": "dishwasher",
+    "appliance4": "television",
+    "appliance5": "microwave",
+    "appliance6": "toaster",
+    "appliance7": "hi-fi",
+    "appliance8": "kettle",
+    "appliance9": "fan"
+  },
+    "5": {
+    "appliance1": "fridge",
+    "appliance2": "tumble_dryer",
     "appliance3": "washing_machine",
     "appliance4": "dishwasher",
     "appliance5": "computer",
-    "appliance6": "microwave",
-    "appliance7": "kettle",
-    "appliance8": "router",
-    "appliance9": "hi-fi"
-  },
-    "20": {
-    "appliance1": "fridge",
-    "appliance2": "freezer",
-    "appliance3": "tumble_dryer",
-    "appliance4": "washing_machine",
-    "appliance5": "dishwasher",
-    "appliance6": "computer",
-    "appliance7": "television",
-    "appliance8": "microwave",
-    "appliance9": "kettle"
+    "appliance6": "television",
+    "appliance7": "microwave",
+    "appliance8": "kettle",
+    "appliance9": "toaster"
   }
 }
