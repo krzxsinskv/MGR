@@ -1,0 +1,11 @@
+{
+  "1": {
+    "mains.dat": "aggregate",
+    "channel_5.dat": "washing_machine",
+    "channel_6.dat": "dishwasher",
+    "channel_7.dat": "television",
+    "channel_10.dat": "kettle",
+    "channel_12.dat": "fridge",
+    "channel_13.dat": "microwave"
+  }
+}
