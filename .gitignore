@@ -17,5 +17,5 @@
 /results/spatial_attention_maps/*.png
 
 # Datasets
-/datasets/h5/*.h5
 /datasets/refit/*.csv
+/datasets/ukdale/*.dat
