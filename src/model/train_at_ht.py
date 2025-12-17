@@ -38,7 +38,7 @@ def freeze_layers(model):
     return model
 
 
-def train_model_case2(X_train, y_train, X_val, y_val, model, lr=0.0001, batch_size=16, max_epochs=20, patience=2):
+def train_at_ht_model(X_train, y_train, X_val, y_val, model, lr=0.0001, batch_size=16, max_epochs=20, patience=2):
     logger = setup_logger()
     logger.info("Preparing training and validation datasets for CASE 2 (AT)...")
 
@@ -166,7 +166,7 @@ if __name__ == '__main__':
     model = freeze_layers(model)
 
     # Train
-    trained_model, model_path, train_losses, val_losses, timestamp, losses_dir = train_model_case2(
+    trained_model, model_path, train_losses, val_losses, timestamp, losses_dir = train_at_ht_model(
         X_train=X_train,
         y_train=y_train,
         X_val=X_val,

@@ -169,6 +169,66 @@ def load_refit_csv(appliance_map_path, csv_paths, appliances=None):
     return data_dict
 
 
+def load_ukdale_dat(
+    dat_folder,
+    appliance_map_path,
+    house_id,
+    appliances=None
+):
+    """
+    Load UK-DALE .dat files into a REFIT-compatible in-memory structure.
+    Handles:
+      - mains.dat   : timestamp, P_active, _, _
+      - channel.dat : timestamp, power
+    """
+
+    logger = setup_logger()
+
+    with open(appliance_map_path) as f:
+        appliance_mapping = json.load(f)
+
+    house_id = str(house_id)
+    if house_id not in appliance_mapping:
+        raise KeyError(f"House {house_id} not found in UK-DALE appliance map")
+
+    data_dict = {house_id: {}}
+
+    for filename, device_name in appliance_mapping[house_id].items():
+
+        # Filter appliances (always keep aggregate)
+        if appliances and device_name not in appliances and device_name != "aggregate":
+            continue
+
+        path = os.path.join(dat_folder, filename)
+        logger.info(f"Loading UK-DALE {device_name} from {path}")
+
+        if filename == "mains.dat":
+            # mains.dat has 4 columns
+            df = pd.read_csv(
+                path,
+                sep=r"\s+",
+                header=None,
+                usecols=[0, 1],        # timestamp + active power
+                names=["timestamp", device_name]
+            )
+        else:
+            # channel_X.dat has 2 columns
+            df = pd.read_csv(
+                path,
+                sep=r"\s+",
+                header=None,
+                names=["timestamp", device_name]
+            )
+
+        df["timestamp"] = pd.to_datetime(df["timestamp"], unit="s")
+        df = df.set_index("timestamp").sort_index()
+
+        data_dict[house_id][device_name] = df
+
+    logger.info("UK-DALE loaded successfully (mains + channels).")
+    return data_dict
+
+
 def prepare_data(
     data_dict,
     house_id,
@@ -290,26 +350,32 @@ def prepare_data(
 
 def combine_and_sync(mains, appliance):
     """
-    Combines mains and appliance power consumption data into a single, synchronized DataFrame.
-    The resulting DataFrame shares a common datetime index and contains two columns:
-    'aggregate' (for mains) and 'appliance' (for the selected device).
-
-    :param mains: pandas.DataFrame or pandas.Series representing aggregate (mains) power data
-    :param appliance: pandas.DataFrame or pandas.Series representing appliance power data
-    :return: pandas.DataFrame with structure:
-             index (DatetimeIndex)
-             ├── aggregate (float)
-             └── appliance (float)
+    Combine mains and appliance data by time alignment (inner join).
+    Required for UK-DALE where channels have different timestamps.
     """
     logger = setup_logger()
-    logger.info("Combining mains and appliance data into a single DataFrame.")
+    logger.info("Combining mains and appliance data with time alignment.")
 
-    df = pd.DataFrame({
-        'aggregate': mains.values.flatten(),
-        'appliance': appliance.values.flatten()
-    }, index=mains.index)
+    # Ensure datetime index
+    mains = mains.copy()
+    appliance = appliance.copy()
 
-    logger.info("Data combined successfully.")
+    mains.index = pd.to_datetime(mains.index)
+    appliance.index = pd.to_datetime(appliance.index)
+
+    # --- CRITICAL STEP ---
+    df = mains.join(appliance, how="inner")
+
+    df.columns = ["aggregate", "appliance"]
+
+    logger.info(
+        f"Combined data: {len(df)} samples "
+        f"(mains={len(mains)}, appliance={len(appliance)})"
+    )
+
+    if df.empty:
+        raise ValueError("No overlapping timestamps between mains and appliance")
+
     return df
 
 
@@ -602,15 +668,30 @@ def create_windowed_samples(df, window_length=100):
 
 def make_dataset(case_number: int):
     config = load_case_config(case_number)
+    dataset_name = config["data"]["dataset"]
 
-    csv_paths = get_csv_paths_from_config(
-        csv_folder=os.path.join("datasets", config["data"]["dataset"]),
-        house_ids=config["data"]["houses"])
+    if dataset_name == "refit":
+        csv_paths = get_csv_paths_from_config(
+            csv_folder=os.path.join("datasets", "refit"),
+            house_ids=config["data"]["houses"]
+        )
 
-    data = load_refit_csv(
-        appliance_map_path=config["paths"]["appliance_map"],
-        csv_paths=csv_paths,
-        appliances=config["data"]["appliances"])
+        data = load_refit_csv(
+            appliance_map_path=config["paths"]["appliance_map"],
+            csv_paths=csv_paths,
+            appliances=config["data"]["appliances"]
+        )
+
+    elif dataset_name == "ukdale":
+        data = load_ukdale_dat(
+            dat_folder=os.path.join("datasets", "ukdale"),
+            appliance_map_path=config["paths"]["appliance_map"],
+            house_id=config["data"]["houses"][0],
+            appliances=config["data"]["appliances"]
+        )
+
+    else:
+        raise ValueError(f"Unknown dataset: {dataset_name}")
 
     mains_train_val, appliance_train_val = prepare_data(
         data_dict=data,
@@ -661,5 +742,6 @@ def make_dataset(case_number: int):
 
 
 if __name__ == '__main__':
-    X_train, y_train, X_val, y_val, X_test, y_test, norm_params_train, config = make_dataset(case_number=2)
+    X_train, y_train, X_val, y_val, X_test, y_test, norm_params_train, config = make_dataset(case_number=1)
+    print(X_train.shape, y_train.shape)
     print(norm_params_train)
