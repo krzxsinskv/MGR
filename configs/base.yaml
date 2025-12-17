@@ -1,6 +1,3 @@
-paths:
-  appliance_map: "datasets/metadata/refit_appliance_map.json"
-
 data:
   resample_rate: "30S"
   window_size: 100
