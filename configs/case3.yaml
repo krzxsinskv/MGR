@@ -1,5 +1,5 @@
 experiment:
-  name: "case2"
+  name: "case3"
   description: "Appliance Transfer (AT) with benchmark model"
 
 data:

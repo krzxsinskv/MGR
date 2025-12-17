@@ -1,0 +1,16 @@
+experiment:
+  name: "case5"
+  description: "House Transfer (HT) with benchmark model"
+
+data:
+  dataset: "ukdale"
+  houses:
+    - 1
+  appliances:
+    - fridge
+  train_range: ["2013-01-01", "2013-07-01"]
+  test_range: ["2014-06-20", "2014-06-30"]
+  train_fraction: 0.4
+
+transfer_learning:
+  benchmark_model: "/content/drive/MyDrive/MGR/benchmark/fridge.pth"
