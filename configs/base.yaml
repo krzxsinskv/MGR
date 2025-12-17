@@ -1,7 +1,6 @@
 data:
   resample_rate: "30S"
   window_size: 100
-  clear_issues: True
   val_ratio: 0.1
 
 normalization:
