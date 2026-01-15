@@ -110,7 +110,7 @@ def evaluate_model(
     )
 
     logger.info(f"Saved metrics to {metrics_path}")
-    plot_predictions(y_true, y_pred, 28800, timestamp, save=True)
+    plot_predictions(y_true, y_pred,  samples=2000, timestamp=timestamp, save=True)
     plot_histogram(y_pred, bins=50, timestamp=timestamp, save=True)
 
     return mae, rmse, sae
