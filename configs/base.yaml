@@ -4,7 +4,7 @@ data:
   val_ratio: 0.1
 
 normalization:
-  method: "minmax"
+  method: "clipped_value_minmax"
   clip_quantile: 0.995
   clip_value: 5000
 
@@ -18,4 +18,4 @@ training:
   patience: 2
 
 evaluation:
-  model: "models/2025-12-16_15-50_best_model.pth"
+  model: "models/2025-12-08_20-03_best_model.pth "
