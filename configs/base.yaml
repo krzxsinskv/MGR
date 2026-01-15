@@ -4,8 +4,8 @@ data:
   val_ratio: 0.1
 
 normalization:
-  method: "clipped_value_minmax"
-  clip_quantile: 0.995
+  method: "clipped_quantile_minmax"
+  clip_quantile: 0.99
   clip_value: 5000
 
 model:
