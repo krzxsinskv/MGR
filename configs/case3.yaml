@@ -7,14 +7,14 @@ data:
   houses:
     - 9
   appliances:
-    - television
+    - dishwasher
   train_range: ["2015-01-01", "2015-07-01"]
   test_range: ["2014-12-01", "2014-12-10"]
-  train_fraction: 0.2
+  train_fraction: 0.8
   clear_issues: True
 
 paths:
   appliance_map: "datasets/metadata/refit_appliance_map.json"
 
 transfer_learning:
-  benchmark_model: "/content/drive/MyDrive/MGR/benchmark/fridge.pth"
+  benchmark_model: "/content/drive/MyDrive/MGR/benchmark/washing_machine.pth"
