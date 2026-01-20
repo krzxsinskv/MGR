@@ -153,7 +153,7 @@ def train_at_ht_model(X_train, y_train, X_val, y_val, model, lr=0.0001, batch_si
 if __name__ == '__main__':
 
     # Load CASE 2 dataset
-    X_train, y_train, X_val, y_val, X_test, y_test, norm_params, config = make_dataset(case_number=2)
+    X_train, y_train, X_val, y_val, X_test, y_test, norm_params, config = make_dataset(case_number=3)
 
     # Load pre-trained CASE 1 model
     benchmark_path = config["transfer_learning"]["benchmark_model"]
