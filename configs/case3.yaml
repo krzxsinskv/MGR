@@ -10,7 +10,7 @@ data:
     - washer_dryer
   train_range: ["2015-01-01", "2015-07-01"]
   test_range: ["2014-12-01", "2014-12-10"]
-  train_fraction: 0.4
+  train_fraction: 0.2
   clear_issues: True
 
 paths:
