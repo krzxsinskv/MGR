@@ -7,7 +7,7 @@ data:
   houses:
     - 5
   appliances:
-    - microwave
+    - kettle
   train_range: ["2014-01-01", "2014-07-01"]
   test_range: ["2014-10-01", "2014-10-10"]
   train_fraction: 0.8
@@ -17,4 +17,4 @@ paths:
   appliance_map: "datasets/metadata/refit_appliance_map.json"
 
 transfer_learning:
-  benchmark_model: "/content/drive/MyDrive/MGR/benchmark/microwave.pth"
+  benchmark_model: "/content/drive/MyDrive/MGR/benchmark/kettle.pth"
