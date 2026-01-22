@@ -5,11 +5,11 @@ experiment:
 data:
   dataset: "refit"
   houses:
-    - 2
+    - 5
   appliances:
-    - television
-  train_range: ["2014-05-01", "2014-11-01"]
-  test_range: ["2015-01-11", "2015-01-20"]
+    - kettle
+  train_range: ["2014-01-01", "2014-07-01"]
+  test_range: ["2014-10-01", "2014-10-10"]
   train_fraction: 0.2
   clear_issues: True
 
@@ -17,4 +17,4 @@ paths:
   appliance_map: "datasets/metadata/refit_appliance_map.json"
 
 transfer_learning:
-  benchmark_model: "/content/drive/MyDrive/MGR/benchmark/television.pth"
+  benchmark_model: "/content/drive/MyDrive/MGR/benchmark/kettle.pth"
