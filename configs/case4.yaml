@@ -10,7 +10,7 @@ data:
     - television
   train_range: ["2014-05-01", "2014-11-01"]
   test_range: ["2015-01-11", "2015-01-20"]
-  train_fraction: 0.6
+  train_fraction: 0.4
   clear_issues: True
 
 paths:
