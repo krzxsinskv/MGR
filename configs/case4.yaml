@@ -7,7 +7,7 @@ data:
   houses:
     - 2
   appliances:
-    - television
+    - hi-fi
   train_range: ["2014-05-01", "2014-11-01"]
   test_range: ["2015-01-11", "2015-01-20"]
   train_fraction: 0.8
@@ -17,4 +17,4 @@ paths:
   appliance_map: "datasets/metadata/refit_appliance_map.json"
 
 transfer_learning:
-  benchmark_model: "/content/drive/MyDrive/MGR/benchmark/television.pth"
+  benchmark_model: "/content/drive/MyDrive/MGR/benchmark/hi-fi.pth"
