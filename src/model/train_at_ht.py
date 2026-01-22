@@ -155,6 +155,7 @@ if __name__ == '__main__':
     # Load CASE 2 dataset
     X_train, y_train, X_val, y_val, X_test, y_test, norm_params, config = make_dataset(case_number=4)
 
+
     # Load pre-trained CASE 1 model
     benchmark_path = config["transfer_learning"]["benchmark_model"]
     base_model_type = config["model"]["type"]
