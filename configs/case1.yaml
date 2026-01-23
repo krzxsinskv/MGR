@@ -5,11 +5,11 @@ experiment:
 data:
   dataset: "refit"
   houses:
-    - 5
+    - 1
   appliances:
-    - kettle
-  train_range: ["2014-01-01", "2014-07-01"]
-  test_range: ["2014-10-01", "2014-10-10"]
+    - washing_machine
+  train_range: ["2014-04-01", "2014-10-01"]
+  test_range: ["2013-10-21", "2013-10-30"]
   train_fraction: 1.0
   clear_issues: True
 
