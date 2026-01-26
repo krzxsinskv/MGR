@@ -139,6 +139,7 @@ def load_eval_config(ds=None, app=None):
 
     final_cfg = merge_dicts(base, ds_cfg)
     final_cfg = merge_dicts(final_cfg, app_cfg)
+
     return final_cfg
 
 
