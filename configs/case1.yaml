@@ -7,7 +7,7 @@ data:
   houses:
     - 1
   appliances:
-    - dishwasher
+    - washer_dryer
   train_range: ["2014-04-01", "2014-10-01"]
   test_range: ["2013-10-21", "2013-10-30"]
   train_fraction: 1.0
