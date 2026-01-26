@@ -121,7 +121,7 @@ def merge_dicts(base, override):
 
 def load_case_config(case_number: int):
     base = load_yaml_config("configs/base.yaml")
-    case_path = f"configs/case{case_number}.yaml"
+    case_path = f"configs/training/case{case_number}.yaml"
 
     case_cfg = load_yaml_config(case_path)
 
