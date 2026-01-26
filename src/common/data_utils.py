@@ -8,7 +8,7 @@ from pathlib import Path
 project_dir = Path(__file__).resolve().parents[2]
 sys.path.insert(1, os.path.join(sys.path[0], project_dir))
 from src.common.other_utils import setup_logger
-from src.common.other_utils import get_csv_paths_from_config, load_case_config
+from src.common.other_utils import get_csv_paths_from_config, load_case_config, load_eval_config
 
 
 def load_refit_csv_to_memory(csv_folder, appliance_map_path):
@@ -666,8 +666,12 @@ def create_windowed_samples(df, window_length=100):
     return X, y
 
 
-def make_dataset(case_number: int):
-    config = load_case_config(case_number)
+def make_dataset(evaluation=False, case_number=1, ds=None, app=None):
+    if evaluation:
+        config = load_eval_config(ds, app)
+    else:
+        config = load_case_config(case_number)
+
     dataset_name = config["data"]["dataset"]
 
     if dataset_name == "refit":
@@ -711,6 +715,12 @@ def make_dataset(case_number: int):
         resample_rate=config["data"]["resample_rate"],
         clear_issues=config["data"]["clear_issues"]
     )
+
+    print("DEBUG prepare_data outputs:")
+    print("mains_train_val:", type(mains_train_val),
+          "len:", None if mains_train_val is None else len(mains_train_val))
+    print("appliance_train_val:", type(appliance_train_val),
+          "len:", None if appliance_train_val is None else len(appliance_train_val))
 
     df_train_val = combine_and_sync(mains=mains_train_val, appliance=appliance_train_val)
     df_test = combine_and_sync(mains=mains_test, appliance=appliance_test)

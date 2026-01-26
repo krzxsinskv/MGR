@@ -129,6 +129,19 @@ def load_case_config(case_number: int):
     return final_cfg
 
 
+def load_eval_config(ds=None, app=None):
+    ds_path = f"configs/datasets/{ds}.yaml"
+    app_path = f"configs/appliances/{app}.yaml"
+
+    base = load_yaml_config("configs/base.yaml")
+    ds_cfg = load_yaml_config(ds_path)
+    app_cfg = load_yaml_config(app_path)
+
+    final_cfg = merge_dicts(base, ds_cfg)
+    final_cfg = merge_dicts(final_cfg, app_cfg)
+    return final_cfg
+
+
 def plot_losses(model, model_path, train_losses, val_losses, timestamp, losses_dir, save=True):
     logger = setup_logger()
     logger.info('Plotting train and validation losses')

@@ -8,6 +8,7 @@ from pathlib import Path
 from tqdm import tqdm
 from torch.utils.data import TensorDataset, DataLoader
 import matplotlib.pyplot as plt
+import argparse
 
 project_dir = Path(__file__).resolve().parents[2]
 sys.path.insert(1, os.path.join(sys.path[0], project_dir))
@@ -116,13 +117,30 @@ def evaluate_model(
     return mae, rmse, sae
 
 
-if __name__ == '__main__':
-    _, _, _, _, X_test, y_test, norm_params, config = make_dataset(case_number=1)
+if __name__ == "__main__":
+    # ---- CLI ----
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--ds", type=str, required=True,
+                        help="Dataset info passed to make_dataset")
+    parser.add_argument("--app", type=str, required=True,
+                        help="Appliance info passed to make_dataset")
+    parser.add_argument("--mdl", type=str, default=None,
+                        help="Path to model .pth (overrides config if given)")
+    args = parser.parse_args()
+
+    # ---- DATASET ----
+    _, _, _, _, X_test, y_test, norm_params, config = make_dataset(evaluation=True,
+        ds=args.ds, app=args.app
+    )
+
+    # ---- MODEL ----
     model = MODEL_ARCHITECTURES[config["model"]["type"]]()
-    model_path = config["evaluation"]["model"]
+    model_path = args.mdl if args.mdl is not None else config["evaluation"]["model"]
+
     model.load_state_dict(torch.load(model_path))
     timestamp = extract_timestamp(model_path)
 
+    # ---- EVALUATION ----
     evaluate_model(
         model=model,
         X_test=X_test,
@@ -130,4 +148,5 @@ if __name__ == '__main__':
         params=norm_params,
         method=config["normalization"]["method"],
         batch_size=config["training"]["batch_size"],
-        timestamp=timestamp)
+        timestamp=timestamp,
+    )

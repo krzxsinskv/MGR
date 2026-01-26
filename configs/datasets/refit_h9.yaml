@@ -1,7 +1,7 @@
 data:
   dataset: refit
   houses: [9]
-  train_range: ["2013-01-01", "2013-01-02"]
+  train_range: ["2015-01-01", "2015-01-02"]
   test_range: ["2014-12-01", "2014-12-10"]
   train_fraction: 1.0
   clear_issues: True

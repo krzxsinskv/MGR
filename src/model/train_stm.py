@@ -121,7 +121,7 @@ def train_stm_model(X_train, y_train, X_val, y_val, model, lr=0.0001, batch_size
 
 
 if __name__ == '__main__':
-    X_train, y_train, X_val, y_val, X_test, y_test, norm_params, config = make_dataset(case_number=1)
+    X_train, y_train, X_val, y_val, X_test, y_test, norm_params, config = make_dataset(evaluation=False, case_number=1)
     model = MODEL_ARCHITECTURES[config["model"]["type"]]()
     trained_model, model_path, train_losses, val_losses, timestamp, losses_dir = train_stm_model(
         X_train=X_train,
