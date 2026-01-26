@@ -10,7 +10,7 @@ data:
     - fridge
   train_range: ["2013-01-01", "2013-07-01"]
   test_range: ["2014-06-20", "2014-06-30"]
-  train_fraction: 0.4
+  train_fraction: 0.8
   clear_issues: False
 
 paths:
