@@ -183,9 +183,6 @@ def plot_predictions(y_true, y_pred, samples, timestamp, save=True):
 
         plt.savefig(save_path)
         logger.info(f"Saved predicted values plot to {save_path}")
-        plt.show()
-    else:
-        plt.show()
 
 
 def plot_histogram(y_pred, bins, timestamp, save=True):

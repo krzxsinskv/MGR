@@ -12,6 +12,7 @@ if [[ $? -ne 0 ]]; then
     exit 1
 fi
 
-python src/model/evaluate_model.py
+python src/model/evaluate_model.py --ds refit_h9 --app fridge --mdl models/2025-12-16_15-50_best_model.pth
+
 
 echo "Python script executed successfully."
