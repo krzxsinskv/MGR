@@ -12,7 +12,8 @@ if [[ $? -ne 0 ]]; then
     exit 1
 fi
 
-python src/common/lab_utils.py
+python src/model/evaluate_model_lab.py --mdl models/kettle_case6.pth
+python src/model/other_maps.py --mdl models/kettle_case6.pth
 
 
 echo "Python script executed successfully."
