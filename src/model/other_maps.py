@@ -2,6 +2,7 @@ import sys
 import os
 import torch
 from pathlib import Path
+import argparse
 
 project_dir = Path(__file__).resolve().parents[2]
 sys.path.insert(1, os.path.join(sys.path[0], project_dir))
@@ -11,9 +12,13 @@ from src.common.other_utils import (extract_fusion_features, plot_fusion_feature
                                     plot_post_attention_feature_map, plot_spatial_attention_map)
 
 if __name__ == '__main__':
-    config = load_case_config(case_number=1)
-    model = MODEL_ARCHITECTURES[config["model"]["type"]]()
-    model_path = config["evaluation"]["model"]
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--mdl", type=str, default=None,
+                        help="Path to model .pth (overrides config if given)")
+    args = parser.parse_args()
+
+    model = MODEL_ARCHITECTURES["STMModel"]()
+    model_path = args.mdl
     model.load_state_dict(torch.load(model_path, map_location="cpu"))
 
     sample = create_input_sample()
@@ -22,9 +27,9 @@ if __name__ == '__main__':
 
     _ = model(sample)
 
-    timestamp = extract_timestamp(model_path=model_path)
+    name = model_path.split("/")[-1].replace(".pth", "")
 
-    plot_channel_attention_map(model.captured["channel_attention_map"][0], timestamp)
-    plot_spatial_attention_map(model.captured["spatial_attention_map"][0], timestamp)
-    plot_post_attention_feature_map(model.captured["post_channel"][0], timestamp, stage="post_channel")
-    plot_post_attention_feature_map(model.captured["post_spatial"][0], timestamp, stage="post_spatial")
+    plot_channel_attention_map(model.captured["channel_attention_map"][0], name)
+    plot_spatial_attention_map(model.captured["spatial_attention_map"][0], name)
+    plot_post_attention_feature_map(model.captured["post_channel"][0], name, stage="post_channel")
+    plot_post_attention_feature_map(model.captured["post_spatial"][0], name, stage="post_spatial")

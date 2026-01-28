@@ -138,7 +138,7 @@ if __name__ == "__main__":
     model_path = args.mdl if args.mdl is not None else config["evaluation"]["model"]
 
     model.load_state_dict(torch.load(model_path))
-    timestamp = extract_timestamp(model_path)
+    name = model_path.split("/")[-1].replace(".pth", "")
 
     # ---- EVALUATION ----
     evaluate_model(
@@ -148,5 +148,5 @@ if __name__ == "__main__":
         params=norm_params,
         method=config["normalization"]["method"],
         batch_size=config["training"]["batch_size"],
-        timestamp=timestamp,
+        timestamp=name,
     )
