@@ -12,7 +12,7 @@ if [[ $? -ne 0 ]]; then
     exit 1
 fi
 
-python src/model/other_maps.py --mdl models/microwave_100_case2.pth
+python src/common/lab_utils.py
 
 
 echo "Python script executed successfully."

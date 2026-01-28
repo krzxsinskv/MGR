@@ -19,3 +19,4 @@
 # Datasets
 /datasets/refit/*.csv
 /datasets/ukdale/*.dat
+/datasets/lab/*.mat
