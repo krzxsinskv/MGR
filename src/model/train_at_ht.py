@@ -11,7 +11,8 @@ project_dir = Path(__file__).resolve().parents[2]
 sys.path.insert(1, os.path.join(sys.path[0], project_dir))
 from src.model.models_architectures import MODEL_ARCHITECTURES
 from src.common.data_utils import make_dataset
-from src.common.other_utils import get_timestamp, setup_logger, plot_losses, load_yaml_config
+from src.common.other_utils import get_timestamp, setup_logger, plot_losses, load_yaml_config, load_case_config
+from src.common.lab_utils import make_lab_dataset
 
 
 def freeze_layers(model):
@@ -151,9 +152,13 @@ def train_at_ht_model(X_train, y_train, X_val, y_val, model, lr=0.0001, batch_si
 
 
 if __name__ == '__main__':
+    # Load CASE 5 - LAB
+    config = load_case_config(case_number=5)
+    X_train, X_val, X_test, y_train, y_val, y_test, params = make_lab_dataset()
 
-    # Load CASE 2 dataset
-    X_train, y_train, X_val, y_val, X_test, y_test, norm_params, config = make_dataset(evaluation=False,case_number=5)
+    # Load CASE 2-5 dataset
+    # X_train, y_train, X_val, y_val, X_test, y_test, norm_params, config = make_dataset(evaluation=False,case_number=5)
+
 
 
     # Load pre-trained CASE 1 model

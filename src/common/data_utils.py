@@ -753,5 +753,9 @@ def make_dataset(evaluation=False, case_number=1, ds=None, app=None):
 
 if __name__ == '__main__':
     X_train, y_train, X_val, y_val, X_test, y_test, norm_params_train, config = make_dataset(case_number=1)
-    print(X_train.shape, y_train.shape)
-    print(norm_params_train)
+    print("X_train max:", X_train.max())
+    print("X_val max:", X_val.max())
+    print("X_test max:", X_test.max())
+    print("y_train max:", y_train.max())
+    print("y_val max:", y_val.max())
+    print("y_test max:", y_test.max())
