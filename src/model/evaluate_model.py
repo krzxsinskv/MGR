@@ -110,8 +110,10 @@ def evaluate_model(
     #     energy_pred_kwh=energy_pred_kwh
     # )
 
+    start = None
+    end = None
     # logger.info(f"Saved metrics to {metrics_path}")
-    plot_predictions(y_true, y_pred,  start=None, end=None, timestamp=timestamp, save=True)
+    plot_predictions(y_true, y_pred,  start=start, end=end, timestamp=timestamp, save=True)
     # plot_histogram(y_pred, bins=50, timestamp=timestamp, save=True)
 
     return mae, rmse, sae

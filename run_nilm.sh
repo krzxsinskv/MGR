@@ -12,8 +12,32 @@ if [[ $? -ne 0 ]]; then
     exit 1
 fi
 
-python src/model/evaluate_model_lab.py --mdl models/kettle_case6.pth
+# start = 0
+# end = 2000
+# python src/model/evaluate_model.py --ds refit_h9 --app washing_machine --mdl models/washing_machine_case1.pth
 
+# start = 0
+# end = 2000
+python src/model/evaluate_model.py --ds ukdale_h1 --app fridge --mdl models/fridge_80_case5.pth
 
+# start = 0
+# end = 2000
+#python src/model/evaluate_model.py --ds ukdale_h1 --app microwave --mdl models/microwave_80_case5.pth
+
+# start = 0
+# end = 2000
+#python src/model/evaluate_model.py --ds ukdale_h1 --app television --mdl models/television_80_case5.pth
+
+# start = 0
+# end = 2000
+#python src/model/evaluate_model.py --ds ukdale_h1 --app kettle --mdl models/kettle_80_case5.pth
+
+# start = 0
+# end = 2000
+#python src/model/evaluate_model.py --ds ukdale_h1 --app dishwasher --mdl models/dishwasher_80_case5.pth
+
+# start = 0
+# end = 2000
+#python src/model/evaluate_model.py --ds ukdale_h1 --app washing_machine --mdl models/washing_machine_80_case5.pth
 
 echo "Python script executed successfully."
