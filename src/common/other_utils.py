@@ -169,11 +169,11 @@ def plot_losses(model, model_path, train_losses, val_losses, timestamp, losses_d
     plt.close()
 
 
-def plot_predictions(y_true, y_pred, samples, timestamp, save=True):
+def plot_predictions(y_true, y_pred, start=None, end=None, timestamp=None, save=True):
     logger = setup_logger()
     logger.info('Plotting true and predicted values')
-    plt.plot(y_true[:samples], label='True')
-    plt.plot(y_pred[:samples], label='Predicted')
+    plt.plot(y_true[start:end], label='True')
+    plt.plot(y_pred[start:end], label='Predicted')
     plt.legend()
     plt.title("True and predicted values")
     if save:

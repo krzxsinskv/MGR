@@ -99,20 +99,20 @@ def evaluate_model(
     logger.info(f"True energy consumption:      {energy_true_kwh:.4f} kWh")
     logger.info(f"Predicted energy consumption: {energy_pred_kwh:.4f} kWh")
 
-    metrics_path = save_metrics_to_txt(
-        mae=mae,
-        rmse=rmse,
-        sae=sae,
-        y_pred=y_pred,
-        y_true=y_true,
-        timestamp=timestamp,
-        energy_true_kwh=energy_true_kwh,
-        energy_pred_kwh=energy_pred_kwh
-    )
+    # metrics_path = save_metrics_to_txt(
+    #     mae=mae,
+    #     rmse=rmse,
+    #     sae=sae,
+    #     y_pred=y_pred,
+    #     y_true=y_true,
+    #     timestamp=timestamp,
+    #     energy_true_kwh=energy_true_kwh,
+    #     energy_pred_kwh=energy_pred_kwh
+    # )
 
-    logger.info(f"Saved metrics to {metrics_path}")
-    plot_predictions(y_true, y_pred,  samples=2000, timestamp=timestamp, save=True)
-    plot_histogram(y_pred, bins=50, timestamp=timestamp, save=True)
+    # logger.info(f"Saved metrics to {metrics_path}")
+    plot_predictions(y_true, y_pred,  start=None, end=None, timestamp=timestamp, save=True)
+    # plot_histogram(y_pred, bins=50, timestamp=timestamp, save=True)
 
     return mae, rmse, sae
 

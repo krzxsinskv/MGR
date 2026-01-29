@@ -90,7 +90,7 @@ def evaluate_model(
     print("Pred min/max", y_pred.min(), y_pred.max())
     print("True min/max", y_true.min(), y_true.max())
 
-    sampling_seconds = params.get("sampling_rate_seconds", 30)
+    sampling_seconds = params.get("sampling_rate_seconds", 0.2)
     factor = sampling_seconds / 3600  # conversion to kWh
 
     energy_pred_kwh = np.sum(y_pred) * factor
@@ -111,8 +111,8 @@ def evaluate_model(
     )
 
     logger.info(f"Saved metrics to {metrics_path}")
-    plot_predictions(y_true, y_pred,  samples=2000, timestamp=timestamp, save=True)
-    plot_histogram(y_pred, bins=50, timestamp=timestamp, save=True)
+    plot_predictions(y_true, y_pred, start=400, end=1000, timestamp=timestamp, save=True)
+    # plot_histogram(y_pred, bins=50, timestamp=timestamp, save=True)
 
     return mae, rmse, sae
 
